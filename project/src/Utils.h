@@ -9,35 +9,30 @@
 namespace dae
 {
 	// Both pixel and the triangle vertices must be in SCREEN SPACE
-	bool PixelInTriangle_Test(const Vector2& pixel, const std::vector<Vertex>& triangle, ColorRGB& interpolatedColorReturn)
+	Vector3 CalculateBarycentricCoordinates(const Vector2& v0, const Vector2& v1, const Vector2& v2, const Vector2& p)
 	{
-		float parellelogramArea = Vector2::Cross(triangle[1].position.GetXY() - triangle[0].position.GetXY(),
-												 triangle[2].position.GetXY() - triangle[1].position.GetXY());
+		float invArea = 1.f / Vector2::Cross(v1 - v0, v2 - v0);
 
-		for (int index{}; index < 3; ++index)
-		{
-			Vector2 p = Vector2	(pixel.x + 0.5f, pixel.y + 0.5f)
-								- triangle[index].position.GetXY();
+		float u = Vector2::Cross(v1 - p, v2 - p) * invArea;
+		float v = Vector2::Cross(v2 - p, v0 - p) * invArea;
+		float w = Vector2::Cross(v0 - p, v1 - p) * invArea;
 
-			const int nextIndex = (index + 1) % 3;
-			Vector2 e = triangle[nextIndex].position.GetXY()
-					  - triangle[index    ].position.GetXY();
-
-			float eXp = Vector2::Cross(e, p);
-			float weight = eXp / parellelogramArea;		// the weight in question is the weight of the vertex NOT in the calculations
-														// e.g. if e = V0V1 and p = V0P then this weight would be the weight on V2
-			if (weight < 0 or weight > 1)
-			{
-				interpolatedColorReturn = colors::Black;
-				return false;
-			}
-			// if we are in the triangle, add the weighted color to the final color. The weight we calculated is of the vertex
-			// not included in the calculations, since we use index and index + 1, index + 2 will be left over, so that's
-			// the vertex index beloning to the calculated weight
-			else interpolatedColorReturn += triangle[(index + 2) % 3].color * weight;
-		}
-		return true;
+		return { u, v, w };
 	}
+	bool AreBarycentricValid(const Vector3& barycentric)
+	{
+		// Check if they are withing a valid range
+		if (barycentric.x < 0.f or barycentric.x > 1.f) return false;
+		if (barycentric.y < 0.f or barycentric.y > 1.f) return false;
+		if (barycentric.z < 0.f or barycentric.z > 1.f) return false;
+
+		// Check if their sum equals 1
+		float sum = barycentric.x + barycentric.y + barycentric.z;
+		bool equalOne = (sum - 1.f) > -0.0001f and (sum - 1.f) < 0.0001f;
+
+		return equalOne;
+	}
+
 
 	namespace Utils
 	{

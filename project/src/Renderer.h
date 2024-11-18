@@ -32,10 +32,9 @@ namespace dae
 
 		bool SaveBufferToImage() const;
 
-		void VertexFromWorldToNDCProjected(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const;
-		void VertexFromNDCToScreenSpace(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const;
+		void WorldVertexToProjectedNDC(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const;
+		void NDCVertexToRasterSpace(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const;
 
-		void ToggleUseBoundingBoxes();
 	private:
 		SDL_Window* m_pWindow{};
 
@@ -52,7 +51,5 @@ namespace dae
 		int m_Height{};
 
 		std::vector<Vertex> m_triangleVertices;
-
-		bool m_UseBoundingBoxes = false;
 	};
 }

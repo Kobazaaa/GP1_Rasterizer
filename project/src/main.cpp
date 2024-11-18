@@ -34,7 +34,7 @@ int main(int argc, char* args[])
 	const uint32_t height = 480;
 
 	SDL_Window* pWindow = SDL_CreateWindow(
-		"Rasterizer - **Insert Name**",
+		"Rasterizer - **Dereyne Kobe - 2DAE**",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
 		width, height, 0);
@@ -72,8 +72,6 @@ int main(int argc, char* args[])
 					takeScreenshot = true;
 				if (e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
 					SDL_SetRelativeMouseMode(SDL_FALSE);
-				if (e.key.keysym.scancode == SDL_SCANCODE_F3)
-					pRenderer->ToggleUseBoundingBoxes();
 				break;
 			case SDL_MOUSEBUTTONDOWN:
 				SDL_SetRelativeMouseMode(SDL_TRUE);

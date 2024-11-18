@@ -54,119 +54,85 @@ void Renderer::Update(Timer* pTimer)
 void Renderer::Render()
 {
 	// @START
-	// Lock BackBuffer
-	SDL_LockSurface(m_pBackBuffer);
-
-	// RENDER LOGIC
-
+	SDL_FillRect(m_pBackBuffer, NULL, 0x646464);
 	for (int index{}; index < m_Width * m_Height; ++index)
 	{
 		// Clear the DEPTH BUFFER
 		m_pDepthBufferPixels[index] = FLT_MAX;
-
-		// Clear Back Buffer
-		m_pBackBufferPixels[index] = SDL_MapRGB(m_pBackBuffer->format,
-			static_cast<uint8_t>(100),
-			static_cast<uint8_t>(100),
-			static_cast<uint8_t>(100));
-
 	}
+	
+	// Lock BackBuffer
+	SDL_LockSurface(m_pBackBuffer);
+
+
+	// RENDER LOGIC
 
 	// Convert from WorldSpace to ScreenSpace
 	std::vector<Vertex> vertices_NDC;
-	VertexFromWorldToNDCProjected(m_triangleVertices, vertices_NDC);
-	std::vector<Vertex> vertices_screenspace;
-	VertexFromNDCToScreenSpace(vertices_NDC, vertices_screenspace);
+	WorldVertexToProjectedNDC(m_triangleVertices, vertices_NDC);
+	std::vector<Vertex> vertices_rasterized;
+	NDCVertexToRasterSpace(vertices_NDC, vertices_rasterized);
 
 	// For every triangle
 	for (int triangleIndex{}; triangleIndex < m_triangleVertices.size() / 3; ++triangleIndex)
 	{
 		// Define triangle
-		std::vector<Vertex> triangle_screenVertices
+		std::vector<Vertex> triangle_rasterVertices
 		{
-			vertices_screenspace[3 * triangleIndex	  ],
-			vertices_screenspace[3 * triangleIndex + 1],
-			vertices_screenspace[3 * triangleIndex + 2]
+			vertices_rasterized[3 * triangleIndex	 ],
+			vertices_rasterized[3 * triangleIndex + 1],
+			vertices_rasterized[3 * triangleIndex + 2]
 		};
-		std::vector<Vector2> triangle_screenEdges
-		{
-			triangle_screenVertices[1].position.GetXY() - triangle_screenVertices[0].position.GetXY(),
-			triangle_screenVertices[2].position.GetXY() - triangle_screenVertices[1].position.GetXY(),
-			triangle_screenVertices[0].position.GetXY() - triangle_screenVertices[2].position.GetXY()
-		};
-
-
 		Vector4 boundingBox =
 		{
-			(float)std::clamp(int(std::min(triangle_screenVertices[0].position.x, std::min(triangle_screenVertices[1].position.x, triangle_screenVertices[2].position.x))), 0, m_Width  - 1),
-			(float)std::clamp(int(std::min(triangle_screenVertices[0].position.y, std::min(triangle_screenVertices[1].position.y, triangle_screenVertices[2].position.y))), 0, m_Height - 1),
-			(float)std::clamp(int(std::max(triangle_screenVertices[0].position.x, std::max(triangle_screenVertices[1].position.x, triangle_screenVertices[2].position.x))), 0, m_Width  - 1),
-			(float)std::clamp(int(std::max(triangle_screenVertices[0].position.y, std::max(triangle_screenVertices[1].position.y, triangle_screenVertices[2].position.y))), 0, m_Height - 1)
+			(float)std::clamp(int(std::min(triangle_rasterVertices[0].position.x, std::min(triangle_rasterVertices[1].position.x, triangle_rasterVertices[2].position.x))), 0, m_Width  - 1),
+			(float)std::clamp(int(std::min(triangle_rasterVertices[0].position.y, std::min(triangle_rasterVertices[1].position.y, triangle_rasterVertices[2].position.y))), 0, m_Height - 1),
+			(float)std::clamp(int(std::max(triangle_rasterVertices[0].position.x, std::max(triangle_rasterVertices[1].position.x, triangle_rasterVertices[2].position.x))), 0, m_Width  - 1),
+			(float)std::clamp(int(std::max(triangle_rasterVertices[0].position.y, std::max(triangle_rasterVertices[1].position.y, triangle_rasterVertices[2].position.y))), 0, m_Height - 1)
 		};
 
 
-		// Calculate (double) the area of the triangle. Also known as the magnitude of the cross product of 
-		// 2 of the triangle edges. (here it doesn't matter we calculate double the are, because we'll need
-		// the ratio anyway)
-		float parellelogramArea = Vector2::Cross(triangle_screenEdges[0], triangle_screenEdges[1]);
-
-		// For every pixel
-		for (int px{ m_UseBoundingBoxes ? (int)boundingBox.x : 0}; px < (m_UseBoundingBoxes ? (int)boundingBox.z : m_Width); ++px)
+		// For every pixel (withing the bounding box)
+		for (int px{ (int)boundingBox.x }; px < (int)boundingBox.z; ++px)
 		{
-			for (int py{ m_UseBoundingBoxes ? (int)boundingBox.y : 0 }; py < (m_UseBoundingBoxes ? (int)boundingBox.w : m_Height); ++py)
+			for (int py{ (int)boundingBox.y }; py < (int)boundingBox.w; ++py)
 			{
 				// Declare finalColor of the pixel
-				ColorRGB finalColor;
-
+				ColorRGB finalColor{};
 				// Declare depth of this pixel
-				float pixelDepth{0};
+				float pixelDepth{ FLT_MAX };
 
-				// Go over every edge of the triangle to see if the pixel lies within the triangle
-				for (int index{}; index < 3; ++index)
+				// Calculate the barycentric coordinates of that pixel in relationship to the triangle
+				Vector2 pixelCoord = Vector2(px + 0.5f, py + 0.5f);
+				Vector3 barycentricCoords = CalculateBarycentricCoordinates(
+						triangle_rasterVertices[0].position.GetXY(),
+						triangle_rasterVertices[1].position.GetXY(),
+						triangle_rasterVertices[2].position.GetXY(),
+						pixelCoord);
+
+				// Check if our barycentric coordinates are valid, if so, calculate the color and depth
+				if (AreBarycentricValid(barycentricCoords))
 				{
-					// Define the vector from the current vertex to the center of the pixel
-					Vector2 p = Vector2(px + 0.5f, py + 0.5f) - triangle_screenVertices[index].position.GetXY();
-
-					// Get the vector of the current index' edge
-					Vector2 e = triangle_screenEdges[index];
-
-					// The cross product of two Vector2's will return the magnitude of the area they span.
-					// (the magnitude of the vector perpindicular to bot Vector2's)
-					float eXpArea = Vector2::Cross(e, p);
-
-					// Calculate the weight of the vertex NOT included in the calculations.
-					// e.g. if e = V0-V1 and p = V0-P then this weight would be the weight on V2
-					float weight = eXpArea / parellelogramArea;
-
-					// If our calculate weight is not within a 0-1 range, we already know our point is not within the triangle
-					if (weight < 0 or weight > 1)
-					{
-						// Point not in trianlge, we set final color to black and break the loop to continue to the next pixel
-						finalColor = colors::Black;
-						pixelDepth = FLT_MAX;
-						break;
-					}
-					// if we are in the triangle, add the weighted color to the final color and calculate the depth
-					// of the pixel. The weight we calculated is of the vertex not included in the calculations, 
-					// since we use index and index + 1, index + 2 will be left over, so that's
-					// the vertex index beloning to the calculated weight
-					else
-					{
-						finalColor += triangle_screenVertices[(index + 2) % 3].color * weight;
-						pixelDepth += triangle_screenVertices[(index + 2) % 3].position.z * weight;
-					}
+					finalColor += barycentricCoords.x * triangle_rasterVertices[0].color
+							    + barycentricCoords.y * triangle_rasterVertices[1].color
+							    + barycentricCoords.z * triangle_rasterVertices[2].color;
+					
+					pixelDepth = barycentricCoords.x * triangle_rasterVertices[0].position.z
+							   + barycentricCoords.y * triangle_rasterVertices[1].position.z
+							   + barycentricCoords.z * triangle_rasterVertices[2].position.z;
 				}
+
 
 				// Now we check if our pixelDepth is closer to what was previously in the DepthBuffer, if it is
 				// we overwrite the Depth buffer
-				if (pixelDepth < m_pDepthBufferPixels[py + m_Height * px] and pixelDepth > 0)
+				if (pixelDepth < m_pDepthBufferPixels[m_Width * py + px] and pixelDepth > FLT_EPSILON)
 				{
-					m_pDepthBufferPixels[py + m_Height * px] = pixelDepth;
+					m_pDepthBufferPixels[m_Width * py + px] = pixelDepth;
 
 					//Update Color in Buffer
 					finalColor.MaxToOne();
 
-					m_pBackBufferPixels[px + (py * m_Width)] = SDL_MapRGB(m_pBackBuffer->format,
+					m_pBackBufferPixels[m_Width * py + px] = SDL_MapRGB(m_pBackBuffer->format,
 						static_cast<uint8_t>(finalColor.r * 255),
 						static_cast<uint8_t>(finalColor.g * 255),
 						static_cast<uint8_t>(finalColor.b * 255));
@@ -182,16 +148,16 @@ void Renderer::Render()
 	SDL_UpdateWindowSurface(m_pWindow);
 }
 
-void Renderer::VertexFromWorldToNDCProjected(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const
+void Renderer::WorldVertexToProjectedNDC(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const
 {
 	vertices_out.resize(vertices_in.size());
 
 	for (int index{}; index < vertices_in.size(); ++index)
 	{
-		Vector3 vertexInCameraSpace		= { m_Camera.invViewMatrix.TransformPoint(vertices_in[index].position) };
+		Vector3 vertexInCameraSpace		= { m_Camera.worldToCamera.TransformPoint(vertices_in[index].position) };
 
-		Vector2 vertexInProjectedSpace	= { vertexInCameraSpace.x / vertexInCameraSpace.z,
-											vertexInCameraSpace.y / vertexInCameraSpace.z};
+		Vector2 vertexInProjectedSpace	= { vertexInCameraSpace.x / abs(vertexInCameraSpace.z),
+											vertexInCameraSpace.y / abs(vertexInCameraSpace.z)};
 
 		Vector2 vertexInNDC				= { vertexInProjectedSpace.x / (m_Camera.fov * m_AspectRatio),
 											vertexInProjectedSpace.y / (m_Camera.fov) };
@@ -200,24 +166,19 @@ void Renderer::VertexFromWorldToNDCProjected(const std::vector<Vertex>& vertices
 		vertices_out[index].color		= vertices_in[index].color;
 	}
 }
-void dae::Renderer::VertexFromNDCToScreenSpace(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const
+void dae::Renderer::NDCVertexToRasterSpace(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const
 {
 	vertices_out.resize(vertices_in.size());
 
 	for (int index{}; index < vertices_in.size(); ++index)
 	{
-		Vector3 vertexInScreenSpace		= { (vertices_in[index].position.x + 1) / 2 * m_Width,
+		Vector3 vertexInRasterSpace		= { (vertices_in[index].position.x + 1) / 2 * m_Width,
 											(1 - vertices_in[index].position.y) / 2 * m_Height,
 											vertices_in[index].position.z };
 
-		vertices_out[index].position	= vertexInScreenSpace;
+		vertices_out[index].position	= vertexInRasterSpace;
 		vertices_out[index].color		= vertices_in[index].color;
 	}
-}
-
-void dae::Renderer::ToggleUseBoundingBoxes()
-{
-	m_UseBoundingBoxes = !m_UseBoundingBoxes;
 }
 
 bool Renderer::SaveBufferToImage() const

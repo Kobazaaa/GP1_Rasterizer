@@ -31,10 +31,10 @@ namespace dae
 		float totalYaw{};
 
 		const float MOVEMENT_SPEED = 15.f;
-		const float ROTATION_SPEED = 7.f;
+		const float ROTATION_SPEED = 30.f;
 
-		Matrix invViewMatrix{};
-		Matrix viewMatrix{};
+		Matrix worldToCamera{};
+		Matrix cameraToWorld{};
 
 		void Initialize(float _fovAngle = 90.f, Vector3 _origin = {0.f,0.f,0.f})
 		{
@@ -47,19 +47,20 @@ namespace dae
 
 		void CalculateViewMatrix()
 		{
-			right = Vector3::Cross(Vector3::UnitY, Camera::forward).Normalized();
-			up = Vector3::Cross(Camera::forward, right).Normalized();
+			right	= Vector3::Cross(Vector3::UnitY, Camera::forward).Normalized();
+			up		= Vector3::Cross(Camera::forward, right).Normalized();
 
-			viewMatrix = Matrix(
+			cameraToWorld = Matrix(
 				right,
 				up,
 				Camera::forward,
 				Camera::origin
 			);
 
-			invViewMatrix = viewMatrix.Inverse();
+			worldToCamera = cameraToWorld.Inverse();
+			
 			//TODO W1
-			//ONB => invViewMatrix
+			//ONB => worldToCamera
 			//Inverse(ONB) => ViewMatrix
 
 			//ViewMatrix => Matrix::CreateLookAtLH(...) [not implemented yet]
@@ -77,40 +78,49 @@ namespace dae
 		void Update(Timer* pTimer)
 		{
 			const float deltaTime = pTimer->GetElapsed();
+			const float displacement = MOVEMENT_SPEED * deltaTime;
 
 			//Keyboard Input
 			const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
-
-			if (pKeyboardState[SDL_SCANCODE_SPACE])	origin += Vector3::UnitY * MOVEMENT_SPEED * pTimer->GetElapsed();
-			if (pKeyboardState[SDL_SCANCODE_LCTRL])	origin -= Vector3::UnitY * MOVEMENT_SPEED * pTimer->GetElapsed();
 
 			//Mouse Input
 			int mouseX{}, mouseY{};
 			const uint32_t mouseState = SDL_GetRelativeMouseState(&mouseX, &mouseY);
 
+
+			if (pKeyboardState[SDL_SCANCODE_Z]
+				or pKeyboardState[SDL_SCANCODE_W])		origin += Vector3(forward.x, forward.y, forward.z) * displacement;
+			if (pKeyboardState[SDL_SCANCODE_Q]
+				or pKeyboardState[SDL_SCANCODE_A])		origin -= Vector3(right.x, right.y, right.z) * displacement;
+			if (pKeyboardState[SDL_SCANCODE_S])			origin -= Vector3(forward.x, forward.y, forward.z) * displacement;
+			if (pKeyboardState[SDL_SCANCODE_D])			origin += Vector3(right.x, right.y, right.z) * displacement;
+			if (pKeyboardState[SDL_SCANCODE_SPACE])		origin += Vector3::UnitY * displacement;
+			if (pKeyboardState[SDL_SCANCODE_LCTRL])		origin -= Vector3::UnitY * displacement;
+
+
 			// Rotate Camera when moving mouse and holding down LMB
-			if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT) or mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT))
+			if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT) /*or mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)*/)
 			{
-				totalPitch	-= mouseY * ROTATION_SPEED * pTimer->GetElapsed() * M_PI / 180;
+				totalPitch	-= mouseY * ROTATION_SPEED * deltaTime * TO_RADIANS;
 				totalPitch	= std::clamp(totalPitch, -80 * TO_RADIANS, 80 * TO_RADIANS); // locks the up/down camera rotation so you don't overshoot
-				totalYaw	+= mouseX * ROTATION_SPEED * pTimer->GetElapsed() * M_PI / 180;
+				totalYaw	+= mouseX * ROTATION_SPEED * deltaTime * TO_RADIANS;
 			}
-			// Move through the scene when holding down the mouse wheel button
-			if (mouseState & SDL_BUTTON(SDL_BUTTON_MIDDLE))
-			{
-				int16_t sgnMouseX = 0;
-				if (mouseX < -0.001f) sgnMouseX = -1;
-				else if (mouseX > 0.001f) sgnMouseX = 1;
-				else sgnMouseX = 0;
+			//// Move through the scene when holding down the mouse wheel button
+			//if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT))
+			//{
+			//	int16_t sgnMouseX = 0;
+			//	if (mouseX < -0.001f) sgnMouseX = -1;
+			//	else if (mouseX > 0.001f) sgnMouseX = 1;
+			//	else sgnMouseX = 0;
 
-				int16_t sgnMouseY = 0;
-				if (mouseY < -0.001f) sgnMouseY = 1;
-				else if (mouseY > 0.001f) sgnMouseY = -1;
-				else sgnMouseY = 0;
+			//	int16_t sgnMouseY = 0;
+			//	if (mouseY < -0.001f) sgnMouseY = 1;
+			//	else if (mouseY > 0.001f) sgnMouseY = -1;
+			//	else sgnMouseY = 0;
 
-				origin += sgnMouseY * Vector3(forward.x, forward.y, forward.z) * MOVEMENT_SPEED * pTimer->GetElapsed();
-				origin += sgnMouseX * Vector3(right.x  , right.y  , right.z  ) * MOVEMENT_SPEED * pTimer->GetElapsed();
-			}
+			//	origin += sgnMouseY * Vector3(forward.x, forward.y, forward.z) * MOVEMENT_SPEED * pTimer->GetElapsed();
+			//	origin += sgnMouseX * Vector3(right.x  , right.y  , right.z  ) * MOVEMENT_SPEED * pTimer->GetElapsed();
+			//}
 
 			Matrix totalRotation = Matrix::CreateRotation(Vector3(totalPitch, totalYaw, 0));
 			forward = totalRotation.TransformVector(Vector3::UnitZ);
