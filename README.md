@@ -7,3 +7,12 @@
 - Barycentric Coordinates
 - Depth Buffer
 - Bounding Box Optimization
+
+# Week 2
+
+- Option to render using different primitive topologies
+	- Triangle Lists
+	- Triangle Strips
+- Textures and UV's
+- Correct depth interpolation and interpolated attributes
+

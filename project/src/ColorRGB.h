@@ -74,7 +74,7 @@ namespace dae
 			return *this;
 		}
 
-		const ColorRGB& operator/(const ColorRGB& c) const
+		const ColorRGB operator/(const ColorRGB& c) const
 		{
 			return { r / c.r, g / c.g, b / c.b };
 		}

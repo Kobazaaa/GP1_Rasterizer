@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <cstdint>
 #include <vector>
 
@@ -50,6 +51,7 @@ namespace dae
 		int m_Width{};
 		int m_Height{};
 
-		std::vector<Vertex> m_triangleVertices;
+		std::vector<Mesh> m_MeshesWorld;
+		std::unique_ptr<Texture> m_upTexture;
 	};
 }

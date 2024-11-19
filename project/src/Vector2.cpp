@@ -51,6 +51,27 @@ namespace dae {
 		return v1.x * v2.y - v1.y * v2.x;
 	}
 
+	Vector2 Vector2::Max(const Vector2& v1, const Vector2& v2)
+	{
+		return {
+			std::fmax(v1.x, v2.x),
+			std::fmax(v1.y, v2.y),
+		};
+	}
+	Vector2 Vector2::Min(const Vector2& v1, const Vector2& v2)
+	{
+		return {
+			std::fmin(v1.x, v2.x),
+			std::fmin(v1.y, v2.y),
+		};
+	}
+
+	bool Vector2::NearZero()
+	{
+		float epsilon = 0.0001f;
+		return (std::abs(x) < epsilon) and (std::abs(y) < epsilon);
+	}
+
 #pragma region Operator Overloads
 	Vector2 Vector2::operator*(float scale) const
 	{

@@ -8,14 +8,29 @@
 
 namespace dae
 {
+	template<typename AttributeType>
+	AttributeType InterpolateAttribute(const AttributeType& data0, const AttributeType& data1, const AttributeType& data2,
+									   float Z0, float Z1, float Z2, float interpolatedDepth,
+									   const Vector3& weights)
+	{
+		return (data0 * weights.x * Z1 * Z2 + data1 * weights.y * Z0 * Z2 + data2 * weights.z * Z0 * Z1)
+			/ (Z0 * Z1 * Z2) * interpolatedDepth;
+	}
+
+	float InterpolateDepth(float Z0, float Z1, float Z2, const Vector3& weights)
+	{
+		return (Z0 * Z1 * Z2)
+			/ (weights.x * Z1 * Z2 + weights.y * Z0 * Z2 + weights.z * Z0 * Z1);
+	}
+
 	// Both pixel and the triangle vertices must be in SCREEN SPACE
 	Vector3 CalculateBarycentricCoordinates(const Vector2& v0, const Vector2& v1, const Vector2& v2, const Vector2& p)
 	{
 		float invArea = 1.f / Vector2::Cross(v1 - v0, v2 - v0);
 
-		float u = Vector2::Cross(v1 - p, v2 - p) * invArea;
-		float v = Vector2::Cross(v2 - p, v0 - p) * invArea;
-		float w = Vector2::Cross(v0 - p, v1 - p) * invArea;
+		float u = Vector2::Cross(v1 - p, v2 - v1) * invArea;
+		float v = Vector2::Cross(v2 - p, v0 - v2) * invArea;
+		float w = Vector2::Cross(v0 - p, v1 - v0) * invArea;
 
 		return { u, v, w };
 	}

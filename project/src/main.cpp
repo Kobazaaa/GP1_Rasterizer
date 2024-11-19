@@ -52,7 +52,7 @@ int main(int argc, char* args[])
 	// Start Benchmark
 	// TODO pTimer->StartBenchmark();
 
-	SDL_SetRelativeMouseMode(SDL_TRUE);
+	//SDL_SetRelativeMouseMode(SDL_TRUE);
 	float printTimer = 0.f;
 	bool isLooping = true;
 	bool takeScreenshot = false;
