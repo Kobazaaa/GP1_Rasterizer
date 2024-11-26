@@ -4,10 +4,15 @@
 #include "Maths.h"
 #include "DataTypes.h"
 
-#define DISABLE_OBJ
+//#define DISABLE_OBJ
 
 namespace dae
 {
+	bool HaveSameSign(float val1, float val2, float val3)
+	{
+		return (std::signbit(val1) == std::signbit(val2)) && (std::signbit(val2) == std::signbit(val3));
+	}
+
 	template<typename AttributeType>
 	AttributeType InterpolateAttribute(const AttributeType& data0, const AttributeType& data1, const AttributeType& data2,
 									   float Z0, float Z1, float Z2, float interpolatedDepth,
@@ -26,7 +31,9 @@ namespace dae
 	// Both pixel and the triangle vertices must be in SCREEN SPACE
 	Vector3 CalculateBarycentricCoordinates(const Vector2& v0, const Vector2& v1, const Vector2& v2, const Vector2& p)
 	{
-		float invArea = 1.f / Vector2::Cross(v1 - v0, v2 - v0);
+		float area = Vector2::Cross(v1 - v0, v2 - v0);
+		area = abs(area);
+		float invArea = 1.f / area;
 
 		float u = Vector2::Cross(v1 - p, v2 - v1) * invArea;
 		float v = Vector2::Cross(v2 - p, v0 - v2) * invArea;
@@ -34,20 +41,60 @@ namespace dae
 
 		return { u, v, w };
 	}
-	bool AreBarycentricValid(const Vector3& barycentric)
+	bool AreBarycentricValid(const Vector3& barycentric, bool backfaceCulling = true, bool frontfaceCulling = false)
 	{
-		// Check if they are withing a valid range
-		if (barycentric.x < 0.f or barycentric.x > 1.f) return false;
-		if (barycentric.y < 0.f or barycentric.y > 1.f) return false;
-		if (barycentric.z < 0.f or barycentric.z > 1.f) return false;
+		if (backfaceCulling and frontfaceCulling) return false;
+
+		// Create simpler aliases
+		const float& X = barycentric.x;
+		const float& Y = barycentric.y;
+		const float& Z = barycentric.z;
+
+		// If they differ from sign, already return false
+		if (!HaveSameSign(X, Y, Z)) return false;
+
+		// Cull back/front faces if needed
+		if (backfaceCulling)
+			if (X <= 0.f and Y <= 0.f and Z <= 0.f) return false;
+		else if (frontfaceCulling)
+			if (X >= 0.f and Y >= 0.f and Z >= 0.f) return false;
+
+
+		// Create aliases for abs
+		const float absX = abs(X);
+		const float absY = abs(Y);
+		const float absZ = abs(Z);
+
+		// Check if they are within the valid range of 0-1
+		if (absX < 0.f or absX > 1.f) return false;
+		if (absY < 0.f or absY > 1.f) return false;
+		if (absZ < 0.f or absZ > 1.f) return false;
 
 		// Check if their sum equals 1
-		float sum = barycentric.x + barycentric.y + barycentric.z;
+		float sum = absX + absY + absZ;
 		bool equalOne = (sum - 1.f) > -0.0001f and (sum - 1.f) < 0.0001f;
 
 		return equalOne;
 	}
 
+	bool IsNDCTriangleInFrustum(const Vertex& vertex)
+	{
+		const Vector3& positionNDC = vertex.position;
+
+		if (positionNDC.x < -1 or positionNDC.x > 1) return false;
+		if (positionNDC.y < -1 or positionNDC.y > 1) return false;
+		if (positionNDC.z < 0  or positionNDC.z > 1) return false;
+		return true;
+	}
+	bool IsNDCTriangleInFrustum(const Vertex_Out& vertex)
+	{
+		Vertex temp;
+		temp.position = vertex.position.GetXYZ();
+		temp.color = vertex.color;
+		temp.uv = vertex.uv;
+
+		return IsNDCTriangleInFrustum(temp);
+	}
 
 	namespace Utils
 	{

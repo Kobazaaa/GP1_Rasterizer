@@ -16,3 +16,8 @@
 - Textures and UV's
 - Correct depth interpolation and interpolated attributes
 
+# Week 3
+
+- Implemented the (WorldView)Projection Matrix
+- Frustum Culling
+- Depth Buffer Visualization

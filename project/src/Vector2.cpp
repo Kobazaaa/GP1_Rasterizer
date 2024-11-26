@@ -29,8 +29,10 @@ namespace dae {
 	float Vector2::Normalize()
 	{
 		const float m = Magnitude();
-		x /= m;
-		y /= m;
+		const float mInv = 1.f / m;
+
+		x *= mInv;
+		y *= mInv;
 
 		return m;
 	}
@@ -38,7 +40,8 @@ namespace dae {
 	Vector2 Vector2::Normalized() const
 	{
 		const float m = Magnitude();
-		return { x / m, y / m};
+		const float mInv = 1.f / m;
+		return { x * mInv, y * mInv };
 	}
 
 	float Vector2::Dot(const Vector2& v1, const Vector2& v2)
@@ -80,7 +83,8 @@ namespace dae {
 
 	Vector2 Vector2::operator/(float scale) const
 	{
-		return { x / scale, y / scale };
+		const float invScale = 1.f / scale;
+		return { x * invScale, y * invScale };
 	}
 
 	Vector2 Vector2::operator+(const Vector2& v) const
@@ -107,8 +111,9 @@ namespace dae {
 
 	Vector2& Vector2::operator/=(float scale)
 	{
-		x /= scale;
-		y /= scale;
+		const float invScale = 1.f / scale;
+		x *= invScale;
+		y *= invScale;
 		return *this;
 	}
 

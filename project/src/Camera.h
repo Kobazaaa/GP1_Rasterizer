@@ -12,16 +12,17 @@ namespace dae
 	{
 		Camera() = default;
 
-		Camera(const Vector3& _origin, float _fovAngle):
+		Camera(const Vector3& _origin, float _fovAngle, float _aspectRatio):
 			origin{_origin},
-			fovAngle{_fovAngle}
+			fovAngle{_fovAngle},
+			aspect{_aspectRatio}
 		{
 		}
 
 
 		Vector3 origin{};
 		float fovAngle{90.f};
-		float fov{ tanf((fovAngle * TO_RADIANS) / 2.f) };
+		float fov{ tanf((fovAngle * TO_RADIANS) * 0.5f) };
 
 		Vector3 forward{Vector3::UnitZ};
 		Vector3 up{Vector3::UnitY};
@@ -35,44 +36,41 @@ namespace dae
 
 		Matrix worldToCamera{};
 		Matrix cameraToWorld{};
+		Matrix projectionMatrix{};
 
-		void Initialize(float _fovAngle = 90.f, Vector3 _origin = {0.f,0.f,0.f})
+		float near	{ 1.f };
+		float far	{ 1000.f };
+		float aspect{ 1.f };
+
+		void Initialize(float _fovAngle = 90.f, Vector3 _origin = {0.f,0.f,0.f}, float _aspectRatio = {1.3333f})
 		{
 			fovAngle = _fovAngle;
-			fov = tanf((fovAngle * TO_RADIANS) / 2.f);
+			fov = tanf((fovAngle * TO_RADIANS) * 0.5f);
 
 			origin = _origin;
+
+			aspect = _aspectRatio;
 		}
 
-
+		
 		void CalculateViewMatrix()
 		{
-			right	= Vector3::Cross(Vector3::UnitY, Camera::forward).Normalized();
-			up		= Vector3::Cross(Camera::forward, right).Normalized();
+			// Calculate the ViewMatrix, aka the matrix to transform world space to camera space
+			worldToCamera = Matrix::CreateLookAtLH(origin, origin + forward, Vector3::UnitY);
+			Matrix temp = worldToCamera; // create a temp copy because .Inverse() changes the matrix itself, which we don't want
 
-			cameraToWorld = Matrix(
-				right,
-				up,
-				Camera::forward,
-				Camera::origin
-			);
+			// The inverse of the ViewMatrix is the cameraToWorld matrix
+			cameraToWorld = temp.Inverse();
 
-			worldToCamera = cameraToWorld.Inverse();
-			
-			//TODO W1
-			//ONB => worldToCamera
-			//Inverse(ONB) => ViewMatrix
-
-			//ViewMatrix => Matrix::CreateLookAtLH(...) [not implemented yet]
-			//DirectX Implementation => https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dxmatrixlookatlh
+			// Get the axis' for the camera out of the cameraToWorld matrix
+			right	= cameraToWorld.GetAxisX();
+			up		= cameraToWorld.GetAxisY();
+			forward = cameraToWorld.GetAxisZ();
 		}
 
 		void CalculateProjectionMatrix()
 		{
-			//TODO W3
-
-			//ProjectionMatrix => Matrix::CreatePerspectiveFovLH(...) [not implemented yet]
-			//DirectX Implementation => https://learn.microsoft.com/en-us/windows/win32/direct3d9/d3dxmatrixperspectivefovlh
+			projectionMatrix = Matrix::CreatePerspectiveFovLH(fov, aspect, near, far);
 		}
 
 		void Update(Timer* pTimer)

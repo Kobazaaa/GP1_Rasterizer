@@ -89,6 +89,12 @@ namespace dae {
 		return *this;
 	}
 
+	const Matrix Matrix::InverseNewMatrix()
+	{
+		Matrix copy = *this;
+		return copy.Inverse();
+	}
+
 	const Matrix& Matrix::Inverse()
 	{
 		//Optimized Inverse as explained in FGED1 - used widely in other libraries too.
@@ -144,16 +150,32 @@ namespace dae {
 
 	Matrix Matrix::CreateLookAtLH(const Vector3& origin, const Vector3& forward, const Vector3& up)
 	{
-		//TODO W1
+		Vector3 zAxis = (forward - origin).Normalized();
+		Vector3 xAxis = Vector3::Cross(up, zAxis).Normalized();
+		Vector3 yAxis = Vector3::Cross(zAxis, xAxis).Normalized();
+		Vector3 trans =
+		{
+			-Vector3::Dot(xAxis, origin),
+			-Vector3::Dot(yAxis, origin),
+			-Vector3::Dot(zAxis, origin)
+		};
 
-		return {};
+		return Matrix(
+			{ xAxis.x, yAxis.x, zAxis.x },
+			{ xAxis.y, yAxis.y, zAxis.y },
+			{ xAxis.z, yAxis.z, zAxis.z },
+			{ trans.x, trans.y, trans.z }
+		);
 	}
 
-	Matrix Matrix::CreatePerspectiveFovLH(float fov, float aspect, float zn, float zf)
+	Matrix Matrix::CreatePerspectiveFovLH(float fovy, float aspect, float zn, float zf)
 	{
-		//TODO W3
-
-		return {};
+		return Matrix(
+			{ 1.f / (aspect * fovy),	0,			 0,							0 },
+			{ 0,						1.f / fovy,	 0,							0 },
+			{ 0,						0,			 (zf)		/ (zf - zn),	1 },
+			{ 0,						0,			-(zf * zn)	/ (zf - zn),	0 }
+		);
 	}
 
 	Vector3 Matrix::GetAxisX() const
@@ -189,30 +211,30 @@ namespace dae {
 	Matrix Matrix::CreateRotationX(float pitch)
 	{
 		return {
-			{1, 0, 0, 0},
-			{0, cos(pitch), -sin(pitch), 0},
-			{0, sin(pitch), cos(pitch), 0},
-			{0, 0, 0, 1}
+			{1,				 0,				 0,		0},
+			{0,		cos(pitch),	   -sin(pitch),		0},
+			{0,		sin(pitch),		cos(pitch),		0},
+			{0,				 0,				 0,		1}
 		};
 	}
 
 	Matrix Matrix::CreateRotationY(float yaw)
 	{
 		return {
-			{cos(yaw), 0, -sin(yaw), 0},
-			{0, 1, 0, 0},
-			{sin(yaw), 0, cos(yaw), 0},
-			{0, 0, 0, 1}
+			{ cos(yaw),		0,	-sin(yaw),	 0},
+			{		 0,		1,			0,	 0},
+			{ sin(yaw),		0,	 cos(yaw),	 0},
+			{		 0,		0,			0,	 1}
 		};
 	}
 
 	Matrix Matrix::CreateRotationZ(float roll)
 	{
 		return {
-			{cos(roll), sin(roll), 0, 0},
-			{-sin(roll), cos(roll), 0, 0},
-			{0, 0, 1, 0},
-			{0, 0, 0, 1}
+			{ cos(roll),	sin(roll),		0,		0},
+			{-sin(roll),	cos(roll),		0,		0},
+			{		  0,			0,		1,		0},
+			{		  0,			0,		0,		1}
 		};
 	}
 

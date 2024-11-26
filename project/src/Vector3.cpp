@@ -57,9 +57,10 @@ namespace dae {
 	float Vector3::Normalize()
 	{
 		const float m = Magnitude();
-		x /= m;
-		y /= m;
-		z /= m;
+		const float mInv = 1.f / m;
+		x *= mInv;
+		y *= mInv;
+		z *= mInv;
 
 		return m;
 	}
@@ -67,7 +68,8 @@ namespace dae {
 	Vector3 Vector3::Normalized() const
 	{
 		const float m = Magnitude();
-		return { x / m, y / m, z / m };
+		const float mInv = 1.f / m;
+		return { x * mInv, y * mInv, z * mInv };
 	}
 
 	float Vector3::Dot(const Vector3& v1, const Vector3& v2)
@@ -122,7 +124,8 @@ namespace dae {
 
 	Vector3 Vector3::operator/(float scale) const
 	{
-		return { x / scale, y / scale, z / scale };
+		const float invScale = 1.f / scale;
+		return { x * invScale, y * invScale, z * invScale };
 	}
 
 	Vector3 Vector3::operator+(const Vector3& v) const
@@ -150,9 +153,10 @@ namespace dae {
 
 	Vector3& Vector3::operator/=(float scale)
 	{
-		x /= scale;
-		y /= scale;
-		z /= scale;
+		const float invScale = 1.f / scale;
+		x *= invScale;
+		y *= invScale;
+		z *= invScale;
 		return *this;
 	}
 

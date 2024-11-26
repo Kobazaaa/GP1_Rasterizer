@@ -72,6 +72,8 @@ int main(int argc, char* args[])
 					takeScreenshot = true;
 				if (e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
 					SDL_SetRelativeMouseMode(SDL_FALSE);
+				if (e.key.keysym.scancode == SDL_SCANCODE_F4)
+					pRenderer->ToggleDepthBufferVisualization();
 				break;
 			case SDL_MOUSEBUTTONDOWN:
 				SDL_SetRelativeMouseMode(SDL_TRUE);

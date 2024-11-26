@@ -30,6 +30,7 @@ namespace dae {
 
 		const Matrix& Transpose();
 		const Matrix& Inverse();
+		const Matrix InverseNewMatrix();
 
 		Vector3 GetAxisX() const;
 		Vector3 GetAxisY() const;

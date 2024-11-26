@@ -3,8 +3,10 @@
 #include <memory>
 #include <cstdint>
 #include <vector>
+#include <array>
 
 #include "Camera.h"
+#include "DataTypes.h"
 
 struct SDL_Window;
 struct SDL_Surface;
@@ -33,8 +35,12 @@ namespace dae
 
 		bool SaveBufferToImage() const;
 
-		void WorldVertexToProjectedNDC(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const;
-		void NDCVertexToRasterSpace(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const;
+		void ToggleDepthBufferVisualization() { m_DepthBufferVisualization = !m_DepthBufferVisualization; }
+
+		void ProjectMeshToNDC(Mesh& mesh) const;
+		void RasterizeVertex(Vertex_Out& vertex) const;
+		void InterpolateDepths(float& zDepth, float& wDepth, const std::array<Vertex_Out, 3>& triangle, const Vector3& weights);
+		void InterpolateAllAttributes(const std::array<Vertex_Out, 3>& triangle, const Vector3& weights, const float wInterpolated, Vertex_Out& output);
 
 	private:
 		SDL_Window* m_pWindow{};
@@ -50,6 +56,8 @@ namespace dae
 
 		int m_Width{};
 		int m_Height{};
+
+		bool m_DepthBufferVisualization { false };
 
 		std::vector<Mesh> m_MeshesWorld;
 		std::unique_ptr<Texture> m_upTexture;

@@ -25,64 +25,69 @@ Renderer::Renderer(SDL_Window* pWindow) :
 	m_pDepthBufferPixels = new float[m_Width * m_Height];
 
 	// Initialize Camera
-	m_Camera.Initialize(60.f, { .0f,.0f,-10.f });
+	m_Camera.Initialize(60.f, { .0f,5.0f, -30.f }, m_AspectRatio);
 
-	// Initialize Mesh with TriangleStrip
-	m_MeshesWorld.push_back(
-		Mesh
-		{
-			// Vertices
-			{
-				Vertex{ { -3 - 4,  3, -2}, colors::White, { 0.0f, 0.0f } },
-				Vertex{ {  0 - 4,  3, -2}, colors::White, { 0.5f, 0.0f } },
-				Vertex{ {  3 - 4,  3, -2}, colors::White, { 1.0f, 0.0f } },
-				Vertex{ { -3 - 4,  0, -2}, colors::White, { 0.0f, 0.5f } },
-				Vertex{ {  0 - 4,  0, -2}, colors::White, { 0.5f, 0.5f } },
-				Vertex{ {  3 - 4,  0, -2}, colors::White, { 1.0f, 0.5f } },
-				Vertex{ { -3 - 4, -3, -2}, colors::White, { 0.0f, 1.0f } },
-				Vertex{ {  0 - 4, -3, -2}, colors::White, { 0.5f, 1.0f } },
-				Vertex{ {  3 - 4, -3, -2}, colors::White, { 1.0f, 1.0f } }
-			},
-			// Indices
-			{
-				3, 0, 4, 1, 5, 2,
-				2, 6,
-				6, 3, 7, 4, 8, 5
-			},
-			// Topology
-			PrimitiveTopology::TriangleStrip
-		}
-	);
+	m_MeshesWorld.resize(1);
+	Utils::ParseOBJ("resources/tuktuk.obj", m_MeshesWorld[0].vertices, m_MeshesWorld[0].indices);
+	m_MeshesWorld[0].primitiveTopology = PrimitiveTopology::TriangleList;
 
-	// Initialize Mesh with TriangleList
-	m_MeshesWorld.push_back(
-		Mesh
-		{
-			// Vertices
-			{
-				Vertex{ { -3 + 4,  3, -2}, colors::White, { 0.0f, 0.0f } },
-				Vertex{ {  0 + 4,  3, -2}, colors::White, { 0.5f, 0.0f } },
-				Vertex{ {  3 + 4,  3, -2}, colors::White, { 1.0f, 0.0f } },
-				Vertex{ { -3 + 4,  0, -2}, colors::White, { 0.0f, 0.5f } },
-				Vertex{ {  0 + 4,  0, -2}, colors::White, { 0.5f, 0.5f } },
-				Vertex{ {  3 + 4,  0, -2}, colors::White, { 1.0f, 0.5f } },
-				Vertex{ { -3 + 4, -3, -2}, colors::White, { 0.0f, 1.0f } },
-				Vertex{ {  0 + 4, -3, -2}, colors::White, { 0.5f, 1.0f } },
-				Vertex{ {  3 + 4, -3, -2}, colors::White, { 1.0f, 1.0f } }
-			},
-			// Indices
-			{
-				3, 0, 1,	1, 4, 3,	4, 1, 2, 
-				2, 5, 4,	6, 3, 4,	4, 7, 6, 
-				7, 4, 5,	5, 8, 7
-			},
-			// Topology
-			PrimitiveTopology::TriangleList
-		}
-	);
+	//// Initialize Mesh with TriangleStrip
+	//m_MeshesWorld.push_back(
+	//	Mesh
+	//	{
+	//		// Vertices
+	//		{
+	//			Vertex{ { -3 - 4,  3, -4}, colors::White, { 0.0f, 0.0f } },
+	//			Vertex{ {  0 - 4,  3, -4}, colors::White, { 0.5f, 0.0f } },
+	//			Vertex{ {  3 - 4,  3, -4}, colors::White, { 1.0f, 0.0f } },
+	//			Vertex{ { -3 - 4,  0, -4}, colors::White, { 0.0f, 0.5f } },
+	//			Vertex{ {  0 - 4,  0, -4}, colors::White, { 0.5f, 0.5f } },
+	//			Vertex{ {  3 - 4,  0, -4}, colors::White, { 1.0f, 0.5f } },
+	//			Vertex{ { -3 - 4, -3, -4}, colors::White, { 0.0f, 1.0f } },
+	//			Vertex{ {  0 - 4, -3, -4}, colors::White, { 0.5f, 1.0f } },
+	//			Vertex{ {  3 - 4, -3, -4}, colors::White, { 1.0f, 1.0f } }
+	//		},
+	//		// Indices
+	//		{
+	//			3, 0, 4, 1, 5, 2,
+	//			2, 6,
+	//			6, 3, 7, 4, 8, 5
+	//		},
+	//		// Topology
+	//		PrimitiveTopology::TriangleStrip
+	//	}
+	//);
+	//
+	//// Initialize Mesh with TriangleList
+	//m_MeshesWorld.push_back(
+	//	Mesh
+	//	{
+	//		// Vertices
+	//		{
+	//			Vertex{ { -3 + 4,  3, -2}, colors::Green, { 0.0f, 0.0f } },
+	//			Vertex{ {  0 + 4,  3, -2}, colors::Blue, { 0.5f, 0.0f } },
+	//			Vertex{ {  3 + 4,  3, -2}, colors::White, { 1.0f, 0.0f } },
+	//			Vertex{ { -3 + 4,  0, -2}, colors::Red, { 0.0f, 0.5f } },
+	//			Vertex{ {  0 + 4,  0, -2}, colors::White, { 0.5f, 0.5f } },
+	//			Vertex{ {  3 + 4,  0, -2}, colors::White, { 1.0f, 0.5f } },
+	//			Vertex{ { -3 + 4, -3, -2}, colors::White, { 0.0f, 1.0f } },
+	//			Vertex{ {  0 + 4, -3, -2}, colors::White, { 0.5f, 1.0f } },
+	//			Vertex{ {  3 + 4, -3, -2}, colors::White, { 1.0f, 1.0f } }
+	//		},
+	//		// Indices
+	//		{
+	//			3, 0, 1,	1, 4, 3,	4, 1, 2, 
+	//			2, 5, 4,	6, 3, 4,	4, 7, 6, 
+	//			7, 4, 5,	5, 8, 7
+	//		},
+	//		// Topology
+	//		PrimitiveTopology::TriangleList
+	//	}
+	//);
 
 	// Load a texture
-	m_upTexture.reset(Texture::LoadFromFile("resources/uv_grid_2.png"));
+	//m_upTexture.reset(Texture::LoadFromFile("resources/uv_grid_2.png"));
+	m_upTexture.reset(Texture::LoadFromFile("resources/tuktuk.png"));
 }
 
 Renderer::~Renderer()
@@ -93,6 +98,9 @@ Renderer::~Renderer()
 void Renderer::Update(Timer* pTimer)
 {
 	m_Camera.Update(pTimer);
+
+	const float rotationSpeedRadians = 30 * TO_RADIANS;
+	m_MeshesWorld[0].worldMatrix = Matrix::CreateRotationY(rotationSpeedRadians * pTimer->GetTotal());
 }
 
 void Renderer::Render()
@@ -108,12 +116,15 @@ void Renderer::Render()
 	// Lock BackBuffer
 	SDL_LockSurface(m_pBackBuffer);
 
-
 	// RENDER LOGIC
 
 	// For every triangle mesh
 	for (int triangleMeshIndex{}; triangleMeshIndex < m_MeshesWorld.size(); ++triangleMeshIndex)
 	{
+		Mesh& currentMesh = m_MeshesWorld[triangleMeshIndex];
+		// predefine a triangle we can reuse
+		std::array<Vertex_Out, 3> triangleNDC{};
+
 		int indexJump = 0;
 		int triangleCount = 0;
 		bool triangleStripMethod = false;
@@ -132,48 +143,57 @@ void Renderer::Render()
 			triangleStripMethod = true;
 		}
 
-
-		// Convert positions from WorldSpace to ScreenSpace
-		std::vector<Vertex> vertices_NDC;
-		WorldVertexToProjectedNDC(m_MeshesWorld[triangleMeshIndex].vertices, vertices_NDC);
-		std::vector<Vertex> vertices_rasterized;
-		NDCVertexToRasterSpace(vertices_NDC, vertices_rasterized);
-
+		// Project the entire mesh to NDC coordinates
+		ProjectMeshToNDC(currentMesh);
 
 		// Loop over all the triangles
 		for (int triangleIndex{}; triangleIndex < triangleCount; ++triangleIndex)
 		{
-			int indexPos0 = m_MeshesWorld[triangleMeshIndex].indices[indexJump * triangleIndex + 0];
-			int indexPos1 = m_MeshesWorld[triangleMeshIndex].indices[indexJump * triangleIndex + 1];
-			int indexPos2 = m_MeshesWorld[triangleMeshIndex].indices[indexJump * triangleIndex + 2];
+			uint32_t indexPos0 = currentMesh.indices[indexJump * triangleIndex + 0];
+			uint32_t indexPos1 = currentMesh.indices[indexJump * triangleIndex + 1];
+			uint32_t indexPos2 = currentMesh.indices[indexJump * triangleIndex + 2];
+			// Skip if duplicate indices
+			if (indexPos0 == indexPos1 or indexPos0 == indexPos2 or indexPos1 == indexPos2) continue;
 			// If the triangle strip method is in use, swap the indices of odd indexed triangles
 			if (triangleStripMethod and (triangleIndex & 1)) std::swap(indexPos1, indexPos2);
+			
+			// Define triangle in NDC
+			triangleNDC[0] = currentMesh.vertices_out[indexPos0];
+			triangleNDC[1] = currentMesh.vertices_out[indexPos1];
+			triangleNDC[2] = currentMesh.vertices_out[indexPos2];
 
-			// Define triangle
-			std::vector<Vertex> triangle_rasterVertices
-			{
-				vertices_rasterized[indexPos0],
-				vertices_rasterized[indexPos1],
-				vertices_rasterized[indexPos2]
-			};
+			// Cull the triangle if one or more of the NDC vertices are outside the frustum
+			if (!IsNDCTriangleInFrustum(triangleNDC[0])) continue;
+			if (!IsNDCTriangleInFrustum(triangleNDC[1])) continue;
+			if (!IsNDCTriangleInFrustum(triangleNDC[2])) continue;
+
+			// Rasterize the vertices
+			RasterizeVertex(triangleNDC[0]);
+			RasterizeVertex(triangleNDC[1]);
+			RasterizeVertex(triangleNDC[2]);
+
+			// Create an alias for triangleNDC, since they are now in raster space
+			std::array<Vertex_Out, 3>& triangle_rasterVertices = triangleNDC;
 
 			// Define the triangle's bounding box
-			Vector2 min = { FLT_MAX, FLT_MAX };
+			Vector2 min = {  FLT_MAX,  FLT_MAX };
 			Vector2 max = { -FLT_MAX, -FLT_MAX };
 			{
-				// Mins
+				// Minimums
 				min = Vector2::Min(min, triangle_rasterVertices[0].position.GetXY());
 				min = Vector2::Min(min, triangle_rasterVertices[1].position.GetXY());
 				min = Vector2::Min(min, triangle_rasterVertices[2].position.GetXY());
-				min.x = std::clamp(std::round(min.x), 0.f, m_Width  - 1.f);
-				min.y = std::clamp(std::round(min.y), 0.f, m_Height - 1.f);
+				// Clamp between screen min and max, but also make sure that, due to floating point -> int rounding happens correct
+				min.x = std::clamp(std::floor(min.x), 0.f, m_Width  - 1.f);
+				min.y = std::clamp(std::floor(min.y), 0.f, m_Height - 1.f);
 				
-				// Maxs
+				// Maximums
 				max = Vector2::Max(max, triangle_rasterVertices[0].position.GetXY());
 				max = Vector2::Max(max, triangle_rasterVertices[1].position.GetXY());
 				max = Vector2::Max(max, triangle_rasterVertices[2].position.GetXY());
-				max.x = std::clamp(std::round(max.x), 0.f, m_Width  - 1.f);
-				max.y = std::clamp(std::round(max.y), 0.f, m_Height - 1.f);
+				// Clamp between screen min and max, but also make sure that, due to floating point -> int rounding happens correct
+				max.x = std::clamp(std::ceil(max.x), 0.f, m_Width  - 1.f);
+				max.y = std::clamp(std::ceil(max.y), 0.f, m_Height - 1.f);
 			}
 
 
@@ -182,12 +202,16 @@ void Renderer::Render()
 			{
 				for (int px{ int(min.x) }; px < int(max.x); ++px)
 				{
-					// Declare finalColor of the pixel
+					// Declare finalColor and finalTxtColor of the pixel
 					ColorRGB finalColor{};
-					// Declare depth of this pixel
-					float pixelDepth{ FLT_MAX };
+					ColorRGB finalTextureColor{};
 
-					// Calculate the barycentric coordinates of that pixel in relationship to the triangle
+					// Declare wInterpolated and zBufferValue of this pixel
+					float wInterpolated{ FLT_MAX };
+					float zBufferValue { FLT_MAX };
+
+					// Calculate the barycentric coordinates of that pixel in relationship to the triangle,
+					// these barycentric coordinates CAN be invalid (point outside triangle)
 					Vector2 pixelCoord = Vector2(px + 0.5f, py + 0.5f);
 					Vector3 barycentricCoords = CalculateBarycentricCoordinates(
 						triangle_rasterVertices[0].position.GetXY(),
@@ -195,49 +219,48 @@ void Renderer::Render()
 						triangle_rasterVertices[2].position.GetXY(),
 						pixelCoord);
 
-					// Check if our barycentric coordinates are valid, if so, calculate the color and depth
-					if (AreBarycentricValid(barycentricCoords))
+					// Check if our barycentric coordinates are valid, if not, skip to the next pixel
+					if (!AreBarycentricValid(barycentricCoords, true, false)) continue;
+
+					// Now we interpolated both our Z and W depths
+					InterpolateDepths(zBufferValue, wInterpolated, triangle_rasterVertices, barycentricCoords);
+					if (zBufferValue < 0 or zBufferValue > 1) continue; // if z-depth is outside of frustum, skip to next pixel
+					if (wInterpolated < 0) continue; // if w-depth is negative (behind camera), skip to next pixel
+
+					// If out current value in the zBuffer is smaller then our new one, skip to the next pixel
+					if (zBufferValue > m_pDepthBufferPixels[m_Width * py + px]) continue;
+
+					// Now that we are sure our z-depth is smaller then the one in the zBuffer, we can update the zBuffer and interpolate the attributes
+					m_pDepthBufferPixels[m_Width * py + px] = zBufferValue;
+
+					// Correctly interpolated attributes
+					Vertex_Out interpolatedAttributes{};
+					InterpolateAllAttributes(triangle_rasterVertices, barycentricCoords, wInterpolated, interpolatedAttributes);
+					interpolatedAttributes.position.z = zBufferValue;
+					interpolatedAttributes.position.w = wInterpolated;
+
+
+					finalColor = interpolatedAttributes.color;
+
+					Vector2 finalUV = interpolatedAttributes.uv;
+					finalTextureColor = m_upTexture->Sample(finalUV);
+
+					ColorRGB finalPixelColor = finalTextureColor;
+
+					if (m_DepthBufferVisualization)
 					{
-						// Correctly interpolated depth
-						float Z0 = triangle_rasterVertices[0].position.z;
-						float Z1 = triangle_rasterVertices[1].position.z;
-						float Z2 = triangle_rasterVertices[2].position.z;
-
-						pixelDepth = InterpolateDepth(Z0, Z1, Z2, barycentricCoords);
-						// If we have a negative depth, this point is behind the camera and we can go to the next point
-						if (pixelDepth < 0) continue;
-
-						// Correctly interpolated color
-						ColorRGB C0 = triangle_rasterVertices[0].color;
-						ColorRGB C1 = triangle_rasterVertices[1].color;
-						ColorRGB C2 = triangle_rasterVertices[2].color;
-
-						finalColor += InterpolateAttribute(C0, C1, C2, Z0, Z1, Z2, pixelDepth, barycentricCoords);
-						
-						// Correctly interpolated uv
-						Vector2 UV0 = triangle_rasterVertices[0].uv;
-						Vector2 UV1 = triangle_rasterVertices[1].uv;
-						Vector2 UV2 = triangle_rasterVertices[2].uv;
-
-						Vector2 finalUV = InterpolateAttribute(UV0, UV1, UV2, Z0, Z1, Z2, pixelDepth, barycentricCoords);
-						finalColor = m_upTexture->Sample(finalUV);
+						float remappedZ = Remap01(zBufferValue, 0.95f, 1.);
+						finalPixelColor = { remappedZ , remappedZ , remappedZ };
 					}
+					
+					// Make sure our colors are within the correct 0-1 range (while keeping relative differences)
+					finalPixelColor.MaxToOne();
 
-
-					// Now we check if our pixelDepth is closer to what was previously in the DepthBuffer, if it is
-					// we overwrite the Depth buffer
-					if (pixelDepth < m_pDepthBufferPixels[m_Width * py + px] and pixelDepth > FLT_EPSILON)
-					{
-						m_pDepthBufferPixels[m_Width * py + px] = pixelDepth;
-
-						//Update Color in Buffer
-						finalColor.MaxToOne();
-
-						m_pBackBufferPixels[m_Width * py + px] = SDL_MapRGB(m_pBackBuffer->format,
-							static_cast<uint8_t>(finalColor.r * 255),
-							static_cast<uint8_t>(finalColor.g * 255),
-							static_cast<uint8_t>(finalColor.b * 255));
-					}
+					//Update Color in Buffer
+					m_pBackBufferPixels[m_Width * py + px] = SDL_MapRGB(m_pBackBuffer->format,
+						static_cast<uint8_t>(finalPixelColor.r * 255),
+						static_cast<uint8_t>(finalPixelColor.g * 255),
+						static_cast<uint8_t>(finalPixelColor.b * 255));
 				}
 			}
 		}
@@ -250,37 +273,98 @@ void Renderer::Render()
 	SDL_UpdateWindowSurface(m_pWindow);
 }
 
-void Renderer::WorldVertexToProjectedNDC(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const
+void dae::Renderer::ProjectMeshToNDC(Mesh& mesh) const
 {
-	vertices_out.resize(vertices_in.size());
+	mesh.vertices_out.resize(mesh.vertices.size());
 
-	for (int index{}; index < vertices_in.size(); ++index)
+	// Calculate the transformation matrix
+	Matrix worldViewProjectionMatrix = mesh.worldMatrix * m_Camera.worldToCamera * m_Camera.projectionMatrix;
+	
+	for (int index{}; index < mesh.vertices.size(); ++index)
 	{
-		Vector3 vertexInCameraSpace		= { m_Camera.worldToCamera.TransformPoint(vertices_in[index].position) };
-		 
-		Vector2 vertexInProjectedSpace	= { vertexInCameraSpace.x / vertexInCameraSpace.z,
-											vertexInCameraSpace.y / vertexInCameraSpace.z};
+		// Transform every vertex
+		Vector4 transformedPosition = worldViewProjectionMatrix.TransformPoint(mesh.vertices[index].position.ToPoint4());
+		mesh.vertices_out[index].position = transformedPosition;
 
-		Vector2 vertexInNDC				= { vertexInProjectedSpace.x / (m_Camera.fov * m_AspectRatio),
-											vertexInProjectedSpace.y / (m_Camera.fov) };
+		if (mesh.vertices_out[index].position.w <= 0) continue;
 
-		vertices_out[index]				= vertices_in[index];
-		vertices_out[index].position	= { vertexInNDC.x, vertexInNDC.y, vertexInCameraSpace.z };
+		// Perform the perspective divide
+		float invW = 1.f / transformedPosition.w;
+		mesh.vertices_out[index].position.x *= invW;
+		mesh.vertices_out[index].position.y *= invW;
+		mesh.vertices_out[index].position.z *= invW;
+
+
+		// Update the other attributes
+		mesh.vertices_out[index].color			= mesh.vertices[index].color;
+		mesh.vertices_out[index].uv				= mesh.vertices[index].uv;
+
+		mesh.vertices_out[index].normal			= mesh.worldMatrix.TransformVector(mesh.vertices[index].normal);
+		mesh.vertices_out[index].tangent		= mesh.worldMatrix.TransformVector(mesh.vertices[index].tangent);
+		mesh.vertices_out[index].viewDirection	= (mesh.worldMatrix.TransformPoint(mesh.vertices_out[index].position) - m_Camera.origin.ToPoint4()).Normalized();
 	}
 }
-void dae::Renderer::NDCVertexToRasterSpace(const std::vector<Vertex>& vertices_in, std::vector<Vertex>& vertices_out) const
+void dae::Renderer::RasterizeVertex(Vertex_Out& vertex) const
 {
-	vertices_out.resize(vertices_in.size());
+	vertex.position.x = (1.f + vertex.position.x) * 0.5f * m_Width;
+	vertex.position.y = (1.f - vertex.position.y) * 0.5f * m_Height;
+}
 
-	for (int index{}; index < vertices_in.size(); ++index)
-	{
-		Vector3 vertexInRasterSpace		= { (vertices_in[index].position.x + 1.f) / 2.f * m_Width,
-											(1.f - vertices_in[index].position.y) / 2.f * m_Height,
-											vertices_in[index].position.z };
+void dae::Renderer::InterpolateDepths(float& zDepth, float& wDepth, const std::array<Vertex_Out, 3>& triangle, const Vector3& weights)
+{
+	// Now we interpolated both our Z and W depths
+	const float& Z0 = triangle[0].position.z;
+	const float& Z1 = triangle[1].position.z;
+	const float& Z2 = triangle[2].position.z;
+	zDepth = InterpolateDepth(Z0, Z1, Z2, weights);
 
-		vertices_out[index]				= vertices_in[index];
-		vertices_out[index].position	= vertexInRasterSpace;
-	}
+	const float& W0 = triangle[0].position.w;
+	const float& W1 = triangle[1].position.w;
+	const float& W2 = triangle[2].position.w;
+	wDepth = InterpolateDepth(W0, W1, W2, weights);
+}
+void dae::Renderer::InterpolateAllAttributes(const std::array<Vertex_Out, 3>& triangle, const Vector3& weights, const float wInterpolated, Vertex_Out& output)
+{
+	// Get W components
+	const float& W0 = triangle[0].position.w;
+	const float& W1 = triangle[1].position.w;
+	const float& W2 = triangle[2].position.w;
+
+	// Correctly interpolated position
+	const Vector4& P0 = triangle[0].position;
+	const Vector4& P1 = triangle[1].position;
+	const Vector4& P2 = triangle[2].position;
+	output.position = InterpolateAttribute(P0, P1, P2, W0, W1, W2, wInterpolated, weights);
+
+	// Correctly interpolated color
+	const ColorRGB& C0 = triangle[0].color;
+	const ColorRGB& C1 = triangle[1].color;
+	const ColorRGB& C2 = triangle[2].color;
+	output.color = InterpolateAttribute(C0, C1, C2, W0, W1, W2, wInterpolated, weights);
+
+	// Correctly interpolated uv
+	const Vector2& UV0 = triangle[0].uv;
+	const Vector2& UV1 = triangle[1].uv;
+	const Vector2& UV2 = triangle[2].uv;
+	output.uv = InterpolateAttribute(UV0, UV1, UV2, W0, W1, W2, wInterpolated, weights);
+
+	// Correctly interpolated normal
+	const Vector3& N0 = triangle[0].normal;
+	const Vector3& N1 = triangle[1].normal;
+	const Vector3& N2 = triangle[2].normal;
+	output.normal = InterpolateAttribute(N0, N1, N2, W0, W1, W2, wInterpolated, weights);
+
+	// Correctly interpolated tangent
+	const Vector3& T0 = triangle[0].tangent;
+	const Vector3& T1 = triangle[1].tangent;
+	const Vector3& T2 = triangle[2].tangent;
+	output.tangent = InterpolateAttribute(T0, T1, T2, W0, W1, W2, wInterpolated, weights);
+
+	// Correctly interpolated viewDirection
+	const Vector3& VD0 = triangle[0].viewDirection;
+	const Vector3& VD1 = triangle[1].viewDirection;
+	const Vector3& VD2 = triangle[2].viewDirection;
+	output.viewDirection = InterpolateAttribute(VD0, VD1, VD2, W0, W1, W2, wInterpolated, weights);
 }
 
 bool Renderer::SaveBufferToImage() const

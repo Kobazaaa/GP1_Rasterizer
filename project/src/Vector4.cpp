@@ -26,10 +26,11 @@ namespace dae
 	float Vector4::Normalize()
 	{
 		const float m = Magnitude();
-		x /= m;
-		y /= m;
-		z /= m;
-		w /= m;
+		const float mInv = 1.f / m;
+		x *= mInv;
+		y *= mInv;
+		z *= mInv;
+		w *= mInv;
 
 		return m;
 	}
@@ -37,7 +38,8 @@ namespace dae
 	Vector4 Vector4::Normalized() const
 	{
 		const float m = Magnitude();
-		return { x / m, y / m, z / m, w / m };
+		const float mInv = 1.f / m;
+		return { x * mInv, y * mInv, z * mInv, w * mInv };
 	}
 
 	Vector2 Vector4::GetXY() const
@@ -59,6 +61,12 @@ namespace dae
 	Vector4 Vector4::operator*(float scale) const
 	{
 		return { x * scale, y * scale, z * scale, w * scale };
+	}
+
+	Vector4 Vector4::operator/(float scale) const
+	{
+		const float invScale = 1.f / scale;
+		return { x * invScale, y * invScale, z * invScale, w * invScale };
 	}
 
 	Vector4 Vector4::operator+(const Vector4& v) const
