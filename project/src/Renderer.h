@@ -39,6 +39,7 @@ namespace dae
 		void ToggleDepthBufferVisualization()	{ m_DepthBufferVisualization = !m_DepthBufferVisualization; }
 		void ToggleMeshRotation()				{ m_RotateMesh = !m_RotateMesh; }
 		void ToggleNormalMap()					{ m_UseNormalMap = !m_UseNormalMap; }
+		void ToggleWireFrames()					{ m_DrawWireFrames = !m_DrawWireFrames; }
 
 		void ProjectMeshToNDC(Mesh& mesh) const;
 		void RasterizeVertex(Vertex_Out& vertex) const;
@@ -46,6 +47,8 @@ namespace dae
 		void InterpolateAllAttributes(const std::array<Vertex_Out, 3>& triangle, const Vector3& weights, const float wInterpolated, Vertex_Out& output);
 		
 		void PixelShading(const Vertex_Out& v, ColorRGB& color);
+
+		void DrawLine(int x0, int y0, int x1, int y1, const ColorRGB& color);
 	private:
 		enum class ShadingMode
 		{
@@ -58,6 +61,7 @@ namespace dae
 		bool m_DepthBufferVisualization		{ false };
 		bool m_RotateMesh					{ true };
 		bool m_UseNormalMap					{ true };
+		bool m_DrawWireFrames				{ false };
 
 		SDL_Window* m_pWindow{};
 

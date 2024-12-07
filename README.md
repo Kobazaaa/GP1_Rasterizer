@@ -30,3 +30,9 @@
 - Specular Mapping
 	- Gloss + Specular
 - Ambient
+
+# Additional
+
+- Wireframe Visualization
+	- Press F8 to visualize the wireframes
+- Optimizations

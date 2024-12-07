@@ -11,7 +11,7 @@ namespace dae {
 	const Vector2 Vector2::UnitY = Vector2{ 0, 1 };
 	const Vector2 Vector2::Zero = Vector2{ 0, 0 };
 
-	Vector2::Vector2(float _x, float _y) : x(_x), y(_y) {}
+	Vector2::Vector2(float _x, float _y) : x{ _x }, y{ _y } {}
 
 
 	Vector2::Vector2(const Vector2& from, const Vector2& to) : x(to.x - from.x), y(to.y - from.y) {}

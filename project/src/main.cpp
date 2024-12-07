@@ -80,6 +80,8 @@ int main(int argc, char* args[])
 					pRenderer->ToggleNormalMap();
 				if (e.key.keysym.scancode == SDL_SCANCODE_F7)
 					pRenderer->CycleShadingMode();
+				if (e.key.keysym.scancode == SDL_SCANCODE_F8)
+					pRenderer->ToggleWireFrames();
 				break;
 			case SDL_MOUSEBUTTONDOWN:
 				SDL_SetRelativeMouseMode(SDL_TRUE);

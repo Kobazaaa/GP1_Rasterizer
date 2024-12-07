@@ -35,9 +35,11 @@ namespace dae
 		std::vector<Vertex> vertices{};
 		std::vector<uint32_t> indices{};
 		PrimitiveTopology primitiveTopology{ PrimitiveTopology::TriangleStrip };
-		std::vector<uint32_t> vertexCounter{};
 
 		std::vector<Vertex_Out> vertices_out{};
 		Matrix worldMatrix{};
+
+		// Helper Containers
+		std::vector<uint32_t> vertexCounter{};
 	};
 }

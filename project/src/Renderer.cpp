@@ -128,12 +128,15 @@ void Renderer::Render()
 
 	// RENDER LOGIC
 
+
+	// predefine a triangle we can reuse
+	std::array<Vertex_Out, 3> triangleNDC{};
+	std::array<Vertex_Out, 3> triangleRasterVertices{};
+
 	// For every triangle mesh
 	for (int triangleMeshIndex{}; triangleMeshIndex < m_MeshesWorld.size(); ++triangleMeshIndex)
 	{
 		Mesh& currentMesh = m_MeshesWorld[triangleMeshIndex];
-		// predefine a triangle we can reuse
-		std::array<Vertex_Out, 3> triangleNDC{};
 
 		int indexJump = 0;
 		int triangleCount = 0;
@@ -171,6 +174,8 @@ void Renderer::Render()
 			triangleNDC[0] = currentMesh.vertices_out[indexPos0];
 			triangleNDC[1] = currentMesh.vertices_out[indexPos1];
 			triangleNDC[2] = currentMesh.vertices_out[indexPos2];
+			// Calculate the minimum depth if the current triangle, which we will use later for early-depth test
+			float minDepth = std::min(triangleNDC[0].position.z, std::min(triangleNDC[1].position.z, triangleNDC[2].position.z));
 
 			// Cull the triangle if one or more of the NDC vertices are outside the frustum
 			if (!IsNDCTriangleInFrustum(triangleNDC[0])) continue;
@@ -178,29 +183,50 @@ void Renderer::Render()
 			if (!IsNDCTriangleInFrustum(triangleNDC[2])) continue;
 
 			// Rasterize the vertices
-			RasterizeVertex(triangleNDC[0]);
-			RasterizeVertex(triangleNDC[1]);
-			RasterizeVertex(triangleNDC[2]);
+			RasterizeVertex(currentMesh.vertices_out[indexPos0]);
+			RasterizeVertex(currentMesh.vertices_out[indexPos1]);
+			RasterizeVertex(currentMesh.vertices_out[indexPos2]);
 
-			// Create an alias for triangleNDC, since they are now in raster space
-			std::array<Vertex_Out, 3>& triangle_rasterVertices = triangleNDC;
+			// Define triangle in RasterSpace
+			triangleRasterVertices[0] = currentMesh.vertices_out[indexPos0];
+			triangleRasterVertices[1] = currentMesh.vertices_out[indexPos1];
+			triangleRasterVertices[2] = currentMesh.vertices_out[indexPos2];
+
+			if(m_DrawWireFrames)
+			{
+				ColorRGB wireFrameColor = colors::White * Remap01(minDepth, 0.998f, 1.f);
+
+				DrawLine(triangleRasterVertices[0].position.x, triangleRasterVertices[0].position.y,
+						 triangleRasterVertices[1].position.x, triangleRasterVertices[1].position.y,
+						 wireFrameColor);
+
+				DrawLine(triangleRasterVertices[1].position.x, triangleRasterVertices[1].position.y,
+						 triangleRasterVertices[2].position.x, triangleRasterVertices[2].position.y,
+						 wireFrameColor);
+
+				DrawLine(triangleRasterVertices[2].position.x, triangleRasterVertices[2].position.y,
+						 triangleRasterVertices[0].position.x, triangleRasterVertices[0].position.y,
+						 wireFrameColor);
+
+				continue;
+			}
 
 			// Define the triangle's bounding box
 			Vector2 min = {  FLT_MAX,  FLT_MAX };
 			Vector2 max = { -FLT_MAX, -FLT_MAX };
 			{
 				// Minimums
-				min = Vector2::Min(min, triangle_rasterVertices[0].position.GetXY());
-				min = Vector2::Min(min, triangle_rasterVertices[1].position.GetXY());
-				min = Vector2::Min(min, triangle_rasterVertices[2].position.GetXY());
+				min = Vector2::Min(min, triangleRasterVertices[0].position.GetXY());
+				min = Vector2::Min(min, triangleRasterVertices[1].position.GetXY());
+				min = Vector2::Min(min, triangleRasterVertices[2].position.GetXY());
 				// Clamp between screen min and max, but also make sure that, due to floating point -> int rounding happens correct
 				min.x = std::clamp(std::floor(min.x), 0.f, m_Width  - 1.f);
 				min.y = std::clamp(std::floor(min.y), 0.f, m_Height - 1.f);
 				
 				// Maximums
-				max = Vector2::Max(max, triangle_rasterVertices[0].position.GetXY());
-				max = Vector2::Max(max, triangle_rasterVertices[1].position.GetXY());
-				max = Vector2::Max(max, triangle_rasterVertices[2].position.GetXY());
+				max = Vector2::Max(max, triangleRasterVertices[0].position.GetXY());
+				max = Vector2::Max(max, triangleRasterVertices[1].position.GetXY());
+				max = Vector2::Max(max, triangleRasterVertices[2].position.GetXY());
 				// Clamp between screen min and max, but also make sure that, due to floating point -> int rounding happens correct
 				max.x = std::clamp(std::ceil(max.x), 0.f, m_Width  - 1.f);
 				max.y = std::clamp(std::ceil(max.y), 0.f, m_Height - 1.f);
@@ -212,6 +238,12 @@ void Renderer::Render()
 			{
 				for (int px{ int(min.x) }; px < int(max.x); ++px)
 				{
+					// Do an early depth test!!
+					// If the minimum depth of our triangle is already bigger than what is stored in the depth buffer (at a current pixel),
+					// there is no chance that that pixel inside the triangle will be closer, so we just skip to the next pixel
+					if (minDepth > m_pDepthBufferPixels[m_Width * py + px]) continue;
+
+
 					// Declare finalColor of the pixel
 					ColorRGB finalColor{};
 
@@ -223,21 +255,16 @@ void Renderer::Render()
 					// these barycentric coordinates CAN be invalid (point outside triangle)
 					Vector2 pixelCoord = Vector2(px + 0.5f, py + 0.5f);
 					Vector3 barycentricCoords = CalculateBarycentricCoordinates(
-						triangle_rasterVertices[0].position.GetXY(),
-						triangle_rasterVertices[1].position.GetXY(),
-						triangle_rasterVertices[2].position.GetXY(),
+						triangleRasterVertices[0].position.GetXY(),
+						triangleRasterVertices[1].position.GetXY(),
+						triangleRasterVertices[2].position.GetXY(),
 						pixelCoord);
-
-					if (barycentricCoords.x == 0)
-					{
-						int i = 10;
-					}
 
 					// Check if our barycentric coordinates are valid, if not, skip to the next pixel
 					if (!AreBarycentricValid(barycentricCoords, true, false)) continue;
 
 					// Now we interpolated both our Z and W depths
-					InterpolateDepths(zBufferValue, wInterpolated, triangle_rasterVertices, barycentricCoords);
+					InterpolateDepths(zBufferValue, wInterpolated, triangleRasterVertices, barycentricCoords);
 					if (zBufferValue < 0 or zBufferValue > 1) continue; // if z-depth is outside of frustum, skip to next pixel
 					if (wInterpolated < 0) continue; // if w-depth is negative (behind camera), skip to next pixel
 
@@ -249,7 +276,7 @@ void Renderer::Render()
 
 					// Correctly interpolated attributes
 					Vertex_Out interpolatedAttributes{};
-					InterpolateAllAttributes(triangle_rasterVertices, barycentricCoords, wInterpolated, interpolatedAttributes);
+					InterpolateAllAttributes(triangleRasterVertices, barycentricCoords, wInterpolated, interpolatedAttributes);
 					interpolatedAttributes.position.z = zBufferValue;
 					interpolatedAttributes.position.w = wInterpolated;
 
@@ -258,11 +285,19 @@ void Renderer::Render()
 					if (m_DepthBufferVisualization)
 					{
 						float remappedZ = Remap01(zBufferValue, 0.995f, 1.f);
-						finalColor = { remappedZ , remappedZ , remappedZ };
+						//ColorRGB remappedZ = {
+						//	(interpolatedAttributes.normal.x + 1) / 2.f,
+						//	(interpolatedAttributes.normal.y + 1) / 2.f,
+						//	(interpolatedAttributes.normal.z + 1) / 2.f
+						//};
+
+
+						finalColor = { remappedZ, remappedZ, remappedZ };
 					}
 					
 					// Make sure our colors are within the correct 0-1 range (while keeping relative differences)
 					finalColor.MaxToOne();
+
 
 					//Update Color in Buffer
 					m_pBackBufferPixels[m_Width * py + px] = SDL_MapRGB(m_pBackBuffer->format,
@@ -307,11 +342,35 @@ void dae::Renderer::ProjectMeshToNDC(Mesh& mesh) const
 			mesh.vertices_out[index].color = mesh.vertices[index].color;
 			mesh.vertices_out[index].uv = mesh.vertices[index].uv;
 
-			mesh.vertices_out[index].normal = mesh.worldMatrix.TransformVector(mesh.vertices[index].normal).Normalized();
-			mesh.vertices_out[index].tangent = mesh.worldMatrix.TransformVector(mesh.vertices[index].tangent).Normalized();
-			mesh.vertices_out[index].viewDirection = (mesh.worldMatrix.TransformPoint(mesh.vertices_out[index].position) - m_Camera.origin.ToPoint4()).Normalized();
+			mesh.vertices_out[index].normal			= mesh.worldMatrix.TransformVector(mesh.vertices[index].normal).Normalized();
+			mesh.vertices_out[index].tangent		= mesh.worldMatrix.TransformVector(mesh.vertices[index].tangent).Normalized();
+			mesh.vertices_out[index].viewDirection  = (mesh.worldMatrix.TransformPoint(mesh.vertices_out[index].position)
+													- m_Camera.origin.ToPoint4()).Normalized();
+
 
 		});
+		
+	//for (int index{}; index < mesh.indices.size() - 3; index += 3)
+	//{
+	//	float middleDepth = mesh.vertices_out[mesh.indices[index]].position.z
+	//		+ mesh.vertices_out[mesh.indices[index + 1]].position.z
+	//		+ mesh.vertices_out[mesh.indices[index + 2]].position.z;
+
+	//	float middleDepth2 = mesh.vertices_out[mesh.indices[index + 3]].position.z
+	//		+ mesh.vertices_out[mesh.indices[index + 4]].position.z
+	//		+ mesh.vertices_out[mesh.indices[index + 5]].position.z;
+
+	//	if (middleDepth > middleDepth2)
+	//	{
+	//		std::swap(mesh.vertices_out[mesh.indices[index + 0]], mesh.vertices_out[mesh.indices[index + 3]]);
+	//		std::swap(mesh.vertices_out[mesh.indices[index + 1]], mesh.vertices_out[mesh.indices[index + 4]]);
+	//		std::swap(mesh.vertices_out[mesh.indices[index + 2]], mesh.vertices_out[mesh.indices[index + 5]]);
+
+	//		std::swap(mesh.indices[index + 0], mesh.indices[index + 3]);
+	//		std::swap(mesh.indices[index + 1], mesh.indices[index + 4]);
+	//		std::swap(mesh.indices[index + 2], mesh.indices[index + 5]);
+	//	}
+	//}
 }
 void dae::Renderer::RasterizeVertex(Vertex_Out& vertex) const
 {
@@ -361,19 +420,22 @@ void dae::Renderer::InterpolateAllAttributes(const std::array<Vertex_Out, 3>& tr
 	const Vector3& N0 = triangle[0].normal;
 	const Vector3& N1 = triangle[1].normal;
 	const Vector3& N2 = triangle[2].normal;
-	output.normal = InterpolateAttribute(N0, N1, N2, W0, W1, W2, wInterpolated, weights).Normalized();
+	output.normal = InterpolateAttribute(N0, N1, N2, W0, W1, W2, wInterpolated, weights);
+	output.normal.Normalize();
 
 	// Correctly interpolated tangent
 	const Vector3& T0 = triangle[0].tangent;
 	const Vector3& T1 = triangle[1].tangent;
 	const Vector3& T2 = triangle[2].tangent;
-	output.tangent = InterpolateAttribute(T0, T1, T2, W0, W1, W2, wInterpolated, weights).Normalized();
+	output.tangent = InterpolateAttribute(T0, T1, T2, W0, W1, W2, wInterpolated, weights);
+	output.tangent.Normalize();
 
 	// Correctly interpolated viewDirection
 	const Vector3& VD0 = triangle[0].viewDirection;
 	const Vector3& VD1 = triangle[1].viewDirection;
 	const Vector3& VD2 = triangle[2].viewDirection;
-	output.viewDirection = InterpolateAttribute(VD0, VD1, VD2, W0, W1, W2, wInterpolated, weights).Normalized();
+	output.viewDirection = InterpolateAttribute(VD0, VD1, VD2, W0, W1, W2, wInterpolated, weights);
+	output.viewDirection.Normalize();
 }
 
 void dae::Renderer::PixelShading(const Vertex_Out& v, ColorRGB& color)
@@ -422,6 +484,37 @@ void dae::Renderer::PixelShading(const Vertex_Out& v, ColorRGB& color)
 	default:
 		break;
 	}
+}
+
+void dae::Renderer::DrawLine(int x0, int y0, int x1, int y1, const ColorRGB& color)
+{
+	// Bresenham's Line Algorithm
+	// https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+
+	int dx = abs(x1 - x0);
+	int sx = (x0 < x1) ? 1 : -1;
+
+	int dy = -abs(y1 - y0);
+	int sy = (y0 < y1) ? 1 : -1;
+	int err = dx + dy;
+
+	while (true)
+	{
+		if (y0 < m_Height and y0 > 0
+			and x0 < m_Width and x0 > 0)
+		{
+			m_pBackBufferPixels[m_Width * y0 + x0] = SDL_MapRGB(m_pBackBuffer->format,
+				static_cast<uint8_t>(color.r * 255),
+				static_cast<uint8_t>(color.g * 255),
+				static_cast<uint8_t>(color.b * 255));
+		}
+
+		if (x0 == x1 && y0 == y1) break;
+		int e2 = 2 * err;
+		if (e2 >= dy) { err += dy; x0 += sx; }
+		if (e2 <= dx) { err += dx; y0 += sy; }
+	}
+
 }
 
 bool Renderer::SaveBufferToImage() const
