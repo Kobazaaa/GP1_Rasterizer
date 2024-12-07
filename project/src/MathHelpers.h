@@ -29,6 +29,14 @@ namespace dae
 		return a * a;
 	}
 
+	// Returns -1 if < 0, returns 1 if > 0, returns 0 if == 0
+	inline int SignOf(float value)
+	{
+		if (value > -FLT_EPSILON and value < FLT_EPSILON) return 0;
+
+		return value < 0.f ? -1 : 1;
+	}
+
 	inline float Lerpf(float a, float b, float factor)
 	{
 		return ((1 - factor) * a) + (factor * b);
@@ -42,7 +50,7 @@ namespace dae
 
 	inline bool AreEqual(float a, float b, float epsilon = FLT_EPSILON)
 	{
-		return abs(a - b) < epsilon;
+		return (a - b) < epsilon and (a - b) > -epsilon;
 	}
 
 	inline int Clamp(const int v, int min, int max)

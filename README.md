@@ -21,3 +21,12 @@
 - Implemented the (WorldView)Projection Matrix
 - Frustum Culling
 - Depth Buffer Visualization
+
+# Week 4
+
+- Back/Frontface Culling
+- Normal Mapping
+- Diffuse Mapping
+- Specular Mapping
+	- Gloss + Specular
+- Ambient

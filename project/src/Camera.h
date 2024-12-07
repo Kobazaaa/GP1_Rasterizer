@@ -12,10 +12,12 @@ namespace dae
 	{
 		Camera() = default;
 
-		Camera(const Vector3& _origin, float _fovAngle, float _aspectRatio):
+		Camera(const Vector3& _origin, float _fovAngle, float _aspectRatio, float _near, float _far):
 			origin{_origin},
 			fovAngle{_fovAngle},
-			aspect{_aspectRatio}
+			aspect{_aspectRatio},
+			near{ _near },
+			far{ _far }
 		{
 		}
 
@@ -31,18 +33,18 @@ namespace dae
 		float totalPitch{};
 		float totalYaw{};
 
-		const float MOVEMENT_SPEED = 15.f;
-		const float ROTATION_SPEED = 30.f;
+		const float MOVEMENT_SPEED = 20.f;
+		const float ROTATION_SPEED = 10.f;
 
-		Matrix worldToCamera{};
-		Matrix cameraToWorld{};
+		Matrix viewMatrix{};
+		Matrix invViewMatrix{};
 		Matrix projectionMatrix{};
 
-		float near	{ 1.f };
-		float far	{ 1000.f };
+		float near	{ 0.1f };
+		float far	{ 100.f };
 		float aspect{ 1.f };
 
-		void Initialize(float _fovAngle = 90.f, Vector3 _origin = {0.f,0.f,0.f}, float _aspectRatio = {1.3333f})
+		void Initialize(float _fovAngle = 90.f, Vector3 _origin = { 0.f,0.f,0.f }, float _aspectRatio = { 1.3333f }, float nearDist = {0.1f}, float farDist = {100.f})
 		{
 			fovAngle = _fovAngle;
 			fov = tanf((fovAngle * TO_RADIANS) * 0.5f);
@@ -50,22 +52,27 @@ namespace dae
 			origin = _origin;
 
 			aspect = _aspectRatio;
+
+			near = nearDist;
+			far = farDist;
+
+			CalculateProjectionMatrix();
 		}
 
 		
 		void CalculateViewMatrix()
 		{
-			// Calculate the ViewMatrix, aka the matrix to transform world space to camera space
-			worldToCamera = Matrix::CreateLookAtLH(origin, origin + forward, Vector3::UnitY);
-			Matrix temp = worldToCamera; // create a temp copy because .Inverse() changes the matrix itself, which we don't want
+			// Calculate the viewMatrix, aka the matrix to transform world space to camera space
+			viewMatrix = Matrix::CreateLookAtLH(origin, origin + forward, Vector3::UnitY);
+			Matrix temp = viewMatrix; // create a temp copy because .Inverse() changes the matrix itself, which we don't want
 
-			// The inverse of the ViewMatrix is the cameraToWorld matrix
-			cameraToWorld = temp.Inverse();
+			// The inverse of the viewMatrix is the invViewMatrix matrix
+			invViewMatrix = temp.Inverse();
 
-			// Get the axis' for the camera out of the cameraToWorld matrix
-			right	= cameraToWorld.GetAxisX();
-			up		= cameraToWorld.GetAxisY();
-			forward = cameraToWorld.GetAxisZ();
+			// Get the axis' for the camera out of the invViewMatrix matrix
+			right	= invViewMatrix.GetAxisX();
+			up		= invViewMatrix.GetAxisY();
+			forward = invViewMatrix.GetAxisZ();
 		}
 
 		void CalculateProjectionMatrix()
@@ -77,6 +84,7 @@ namespace dae
 		{
 			const float deltaTime = pTimer->GetElapsed();
 			const float displacement = MOVEMENT_SPEED * deltaTime;
+			const float pitchLockAngle = 80 * TO_RADIANS;
 
 			//Keyboard Input
 			const uint8_t* pKeyboardState = SDL_GetKeyboardState(nullptr);
@@ -85,48 +93,48 @@ namespace dae
 			int mouseX{}, mouseY{};
 			const uint32_t mouseState = SDL_GetRelativeMouseState(&mouseX, &mouseY);
 
-
+			// FORWARD
 			if (pKeyboardState[SDL_SCANCODE_Z]
-				or pKeyboardState[SDL_SCANCODE_W])		origin += Vector3(forward.x, forward.y, forward.z) * displacement;
+				or pKeyboardState[SDL_SCANCODE_W]
+				or pKeyboardState[SDL_SCANCODE_UP])		origin += forward * displacement;
+			// LEFT
 			if (pKeyboardState[SDL_SCANCODE_Q]
-				or pKeyboardState[SDL_SCANCODE_A])		origin -= Vector3(right.x, right.y, right.z) * displacement;
-			if (pKeyboardState[SDL_SCANCODE_S])			origin -= Vector3(forward.x, forward.y, forward.z) * displacement;
-			if (pKeyboardState[SDL_SCANCODE_D])			origin += Vector3(right.x, right.y, right.z) * displacement;
-			if (pKeyboardState[SDL_SCANCODE_SPACE])		origin += Vector3::UnitY * displacement;
-			if (pKeyboardState[SDL_SCANCODE_LCTRL])		origin -= Vector3::UnitY * displacement;
+				or pKeyboardState[SDL_SCANCODE_A]
+				or pKeyboardState[SDL_SCANCODE_LEFT])	origin -= right * displacement;
+			// BACKWARDS
+			if (pKeyboardState[SDL_SCANCODE_S]
+				or pKeyboardState[SDL_SCANCODE_DOWN])	origin -= forward * displacement;
+			// RIGHT
+			if (pKeyboardState[SDL_SCANCODE_D]
+				or pKeyboardState[SDL_SCANCODE_RIGHT])	origin += right * displacement;
 
 
-			// Rotate Camera when moving mouse and holding down LMB
-			if (mouseState & SDL_BUTTON(SDL_BUTTON_LEFT) /*or mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT)*/)
+			// MOUSE MOVEMENTS AND ROTATIONS
+			const bool LMB = mouseState & SDL_BUTTON(SDL_BUTTON_LEFT);
+			const bool RMB = mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT);
+			if (!LMB and RMB)
 			{
-				totalPitch	-= mouseY * ROTATION_SPEED * deltaTime * TO_RADIANS;
-				totalPitch	= std::clamp(totalPitch, -80 * TO_RADIANS, 80 * TO_RADIANS); // locks the up/down camera rotation so you don't overshoot
+				totalPitch  -= mouseY * ROTATION_SPEED * deltaTime * TO_RADIANS;
+				totalPitch   = std::clamp(totalPitch, -pitchLockAngle, pitchLockAngle); // locks the up/down camera rotation so you don't overshoot
 				totalYaw	+= mouseX * ROTATION_SPEED * deltaTime * TO_RADIANS;
 			}
-			//// Move through the scene when holding down the mouse wheel button
-			//if (mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT))
-			//{
-			//	int16_t sgnMouseX = 0;
-			//	if (mouseX < -0.001f) sgnMouseX = -1;
-			//	else if (mouseX > 0.001f) sgnMouseX = 1;
-			//	else sgnMouseX = 0;
+			else if (LMB and !RMB)
+			{
+				origin		-= SignOf(mouseY) * forward * displacement;
+				totalYaw	+= mouseX * ROTATION_SPEED * deltaTime * TO_RADIANS;
+			}
+			else if (LMB and RMB)
+			{
+				origin -= SignOf(mouseY) * up * displacement;
+			}
 
-			//	int16_t sgnMouseY = 0;
-			//	if (mouseY < -0.001f) sgnMouseY = 1;
-			//	else if (mouseY > 0.001f) sgnMouseY = -1;
-			//	else sgnMouseY = 0;
-
-			//	origin += sgnMouseY * Vector3(forward.x, forward.y, forward.z) * MOVEMENT_SPEED * pTimer->GetElapsed();
-			//	origin += sgnMouseX * Vector3(right.x  , right.y  , right.z  ) * MOVEMENT_SPEED * pTimer->GetElapsed();
-			//}
-
+			// Apply the rotations
 			Matrix totalRotation = Matrix::CreateRotation(Vector3(totalPitch, totalYaw, 0));
 			forward = totalRotation.TransformVector(Vector3::UnitZ);
 			Camera::forward.Normalize();
 
 			//Update Matrices
 			CalculateViewMatrix();
-			CalculateProjectionMatrix(); //Try to optimize this - should only be called once or when fov/aspectRatio changes
 		}
 	};
 }

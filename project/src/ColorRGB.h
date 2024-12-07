@@ -22,6 +22,11 @@ namespace dae
 			return { Lerpf(c1.r, c2.r, factor), Lerpf(c1.g, c2.g, factor), Lerpf(c1.b, c2.b, factor) };
 		}
 
+		//Vector3 ToVector3()
+		//{
+		//	return Vector3{ r, g, b };
+		//}
+
 #pragma region ColorRGB (Member) Operators
 		const ColorRGB& operator+=(const ColorRGB& c)
 		{

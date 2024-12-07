@@ -1,4 +1,5 @@
 #pragma once
+#include <numeric>
 #include <cassert>
 #include <fstream>
 #include "Maths.h"
@@ -8,13 +9,13 @@
 
 namespace dae
 {
-	bool HaveSameSign(float val1, float val2, float val3)
+	inline bool HaveSameSign(float val1, float val2, float val3)
 	{
 		return (std::signbit(val1) == std::signbit(val2)) && (std::signbit(val2) == std::signbit(val3));
 	}
 
 	template<typename AttributeType>
-	AttributeType InterpolateAttribute(const AttributeType& data0, const AttributeType& data1, const AttributeType& data2,
+	inline AttributeType InterpolateAttribute(const AttributeType& data0, const AttributeType& data1, const AttributeType& data2,
 									   float Z0, float Z1, float Z2, float interpolatedDepth,
 									   const Vector3& weights)
 	{
@@ -22,26 +23,33 @@ namespace dae
 			/ (Z0 * Z1 * Z2) * interpolatedDepth;
 	}
 
-	float InterpolateDepth(float Z0, float Z1, float Z2, const Vector3& weights)
+	inline float InterpolateDepth(float Z0, float Z1, float Z2, const Vector3& weights)
 	{
 		return (Z0 * Z1 * Z2)
 			/ (weights.x * Z1 * Z2 + weights.y * Z0 * Z2 + weights.z * Z0 * Z1);
 	}
 
 	// Both pixel and the triangle vertices must be in SCREEN SPACE
-	Vector3 CalculateBarycentricCoordinates(const Vector2& v0, const Vector2& v1, const Vector2& v2, const Vector2& p)
+	inline Vector3 CalculateBarycentricCoordinates(const Vector2& v0, const Vector2& v1, const Vector2& v2, const Vector2& p)
 	{
 		float area = Vector2::Cross(v1 - v0, v2 - v0);
 		area = abs(area);
 		float invArea = 1.f / area;
 
+		// Calculate the barycentric coordinates
+		// the if-checks and early return statements are to prevent further computing once one of the weights is outide of the -1 - 1 range
+		// Since at that point, our pixel is 100% going to be outside of the triangle
+		// If this is the case, we return the barycentric {0, 0, 0}, which will immediatly get discarded by the AreBarycentricValid function
 		float u = Vector2::Cross(v1 - p, v2 - v1) * invArea;
+		if (u < -1 or u > 1) return {};
 		float v = Vector2::Cross(v2 - p, v0 - v2) * invArea;
+		if (v < -1 or v > 1) return {};
 		float w = Vector2::Cross(v0 - p, v1 - v0) * invArea;
+		if (w < -1 or w > 1) return {};
 
 		return { u, v, w };
 	}
-	bool AreBarycentricValid(const Vector3& barycentric, bool backfaceCulling = true, bool frontfaceCulling = false)
+	inline bool AreBarycentricValid(Vector3& barycentric, bool backfaceCulling = true, bool frontfaceCulling = false)
 	{
 		if (backfaceCulling and frontfaceCulling) return false;
 
@@ -50,20 +58,27 @@ namespace dae
 		const float& Y = barycentric.y;
 		const float& Z = barycentric.z;
 
+		// Do a quick check to immediatly discard if the sum doesn't equal 1 or -1
+		if (!AreEqual(X + Y + Z, -1, 0.0001f)
+			&& !AreEqual(X + Y + Z, 1, 0.0001f)) return false;
+
 		// If they differ from sign, already return false
 		if (!HaveSameSign(X, Y, Z)) return false;
 
 		// Cull back/front faces if needed
 		if (backfaceCulling)
-			if (X <= 0.f and Y <= 0.f and Z <= 0.f) return false;
+		{
+			if (X <= 0 and Y <= 0 and Z <= 0) return false;
+		}
 		else if (frontfaceCulling)
-			if (X >= 0.f and Y >= 0.f and Z >= 0.f) return false;
+		{
+			if (X >= 0 and Y >= 0 and Z >= 0) return false;
+		}
 
-
-		// Create aliases for abs
-		const float absX = abs(X);
-		const float absY = abs(Y);
-		const float absZ = abs(Z);
+		// Create aliases for abs, as well as absolute the actual 
+		const float absX = barycentric.x = abs(X);
+		const float absY = barycentric.y = abs(Y);
+		const float absZ = barycentric.z = abs(Z);
 
 		// Check if they are within the valid range of 0-1
 		if (absX < 0.f or absX > 1.f) return false;
@@ -71,13 +86,16 @@ namespace dae
 		if (absZ < 0.f or absZ > 1.f) return false;
 
 		// Check if their sum equals 1
+		// We check this again since our initial sum check is a quick and dirty one, which doesn't take into account if their signs are the same
+		// e.g. -3 + 4 + 0 also equals 1, but therefore isn't valid
+		// this check will prevent that
 		float sum = absX + absY + absZ;
 		bool equalOne = (sum - 1.f) > -0.0001f and (sum - 1.f) < 0.0001f;
 
 		return equalOne;
 	}
 
-	bool IsNDCTriangleInFrustum(const Vertex& vertex)
+	inline bool IsNDCTriangleInFrustum(const Vertex& vertex)
 	{
 		const Vector3& positionNDC = vertex.position;
 
@@ -86,7 +104,7 @@ namespace dae
 		if (positionNDC.z < 0  or positionNDC.z > 1) return false;
 		return true;
 	}
-	bool IsNDCTriangleInFrustum(const Vertex_Out& vertex)
+	inline bool IsNDCTriangleInFrustum(const Vertex_Out& vertex)
 	{
 		Vertex temp;
 		temp.position = vertex.position.GetXYZ();
@@ -96,12 +114,41 @@ namespace dae
 		return IsNDCTriangleInFrustum(temp);
 	}
 
+	inline Vector3 SampleFromNormalMap(const Vector3& interpNormal, const Vector3& interpTangent, const Vector2& interpUV, const std::unique_ptr<Texture>& upNormalMap)
+	{
+		// Calculate the tangent space matrix
+		Vector3 binormal = Vector3::Cross(interpNormal, interpTangent);
+		Matrix tangentSpaceAxis = Matrix(
+			interpTangent,
+			binormal,
+			interpNormal,
+			Vector3::Zero
+		);
+
+		// Sample the normal map
+		ColorRGB nrmlMap = upNormalMap->Sample(interpUV);
+		Vector3 normal{ nrmlMap.r, nrmlMap.g, nrmlMap.b };
+		normal = 2.f * normal - Vector3(1.f, 1.f, 1.f);
+		normal = tangentSpaceAxis.TransformVector(normal);
+
+		return normal.Normalized();
+	}
+	inline ColorRGB SamplePhong(const Vector3& dirToLight, const Vector3& viewDir, const Vector3& interpNormal, const Vector2& interpUV, float shininess, const std::unique_ptr<Texture>& upGlossinessTxt, const std::unique_ptr<Texture>& upSpecularMap)
+	{
+		float ks = upSpecularMap->Sample(interpUV).r;
+		float exp = upGlossinessTxt->Sample(interpUV).r * shininess;
+
+		Vector3 reflect{ dirToLight - 2 * Vector3::Dot(interpNormal, dirToLight) * interpNormal };
+		float cosAlpha{ std::max(Vector3::Dot(reflect, viewDir), 0.f) };
+		return ColorRGB(1, 1, 1) * ks * std::pow(cosAlpha, exp);
+	}
+
 	namespace Utils
 	{
 		//Just parses vertices and indices
 #pragma warning(push)
 #pragma warning(disable : 4505) //Warning unreferenced local function
-		static bool ParseOBJ(const std::string& filename, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, bool flipAxisAndWinding = true)
+		static bool ParseOBJ(const std::string& filename, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>& vertexCounter, bool flipAxisAndWinding = true)
 		{
 #ifdef DISABLE_OBJ
 
@@ -255,6 +302,9 @@ namespace dae
 				}
 
 			}
+
+			vertexCounter.resize(vertices.size());
+			std::iota(vertexCounter.begin(), vertexCounter.end(), 0);
 
 			return true;
 #endif
