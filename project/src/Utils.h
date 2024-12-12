@@ -114,35 +114,6 @@ namespace dae
 		return IsNDCTriangleInFrustum(temp);
 	}
 
-	inline Vector3 SampleFromNormalMap(const Vector3& interpNormal, const Vector3& interpTangent, const Vector2& interpUV, const std::unique_ptr<Texture>& upNormalMap)
-	{
-		// Calculate the tangent space matrix
-		Vector3 binormal = Vector3::Cross(interpNormal, interpTangent);
-		Matrix tangentSpaceAxis = Matrix(
-			interpTangent,
-			binormal,
-			interpNormal,
-			Vector3::Zero
-		);
-
-		// Sample the normal map
-		ColorRGB nrmlMap = upNormalMap->Sample(interpUV);
-		Vector3 normal{ nrmlMap.r, nrmlMap.g, nrmlMap.b };
-		normal = 2.f * normal - Vector3(1.f, 1.f, 1.f);
-		normal = tangentSpaceAxis.TransformVector(normal);
-
-		return normal.Normalized();
-	}
-	inline ColorRGB SamplePhong(const Vector3& dirToLight, const Vector3& viewDir, const Vector3& interpNormal, const Vector2& interpUV, float shininess, const std::unique_ptr<Texture>& upGlossinessTxt, const std::unique_ptr<Texture>& upSpecularMap)
-	{
-		float ks = upSpecularMap->Sample(interpUV).r;
-		float exp = upGlossinessTxt->Sample(interpUV).r * shininess;
-
-		Vector3 reflect{ dirToLight - 2 * Vector3::Dot(interpNormal, dirToLight) * interpNormal };
-		float cosAlpha{ std::max(Vector3::Dot(reflect, viewDir), 0.f) };
-		return ColorRGB(1, 1, 1) * ks * std::pow(cosAlpha, exp);
-	}
-
 	namespace Utils
 	{
 		//Just parses vertices and indices

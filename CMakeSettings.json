@@ -12,44 +12,50 @@
       "ctestCommandArgs": ""
     },
     {
-      "name": "x64-Release",
+      "name": "x64-RelWithDebInfo",
       "generator": "Ninja",
-      "configurationType": "Release",
+      "configurationType": "RelWithDebInfo",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "msvc_x64_x64" ],
       "variables": [
         {
-          "name": "BUILD_GTEST",
-          "value": "False",
-          "type": "BOOL"
-        },
-        {
-          "name": "CMAKE_BUILD_TYPE",
-          "value": "Release",
+          "name": "CMAKE_CXX_FLAGS_RELWITHDEBINFO",
+          "value": "/O2 /Ob2 /DNDEBUG /Zi /Oi /W3 /sdl /MD /Gy",
           "type": "STRING"
         },
         {
-          "name": "BUILD_TESTS",
-          "value": "False",
-          "type": "BOOL"
+          "name": "CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO",
+          "value": "/DEBUG",
+          "type": "STRING"
         }
       ]
     },
     {
-      "name": "x64-RelWithDebInfo",
+      "name": "x64-Release",
       "generator": "Ninja",
-      "configurationType": "RelWithDebInfo",
+      "configurationType": "Release",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "msvc_x64_x64" ],
-      "variables": []
+      "variables": [
+        {
+          "name": "CMAKE_CXX_FLAGS_RELEASE",
+          "value": "/O2 /Ob2 /DNDEBUG /Zi /Oi /GL /W3 /sdl /MD /Gy",
+          "type": "STRING"
+        },
+        {
+          "name": "CMAKE_EXE_LINKER_FLAGS_RELEASE",
+          "value": "/LTCG",
+          "type": "STRING"
+        }
+      ]
     }
   ]
 }

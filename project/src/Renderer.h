@@ -46,7 +46,7 @@ namespace dae
 		void InterpolateDepths(float& zDepth, float& wDepth, const std::array<Vertex_Out, 3>& triangle, const Vector3& weights);
 		void InterpolateAllAttributes(const std::array<Vertex_Out, 3>& triangle, const Vector3& weights, const float wInterpolated, Vertex_Out& output);
 		
-		void PixelShading(const Vertex_Out& v, ColorRGB& color);
+		ColorRGB PixelShading(const Vertex_Out& v, Mesh& m);
 
 		void DrawLine(int x0, int y0, int x1, int y1, const ColorRGB& color);
 	private:
@@ -77,12 +77,6 @@ namespace dae
 		int m_Width{};
 		int m_Height{};
 
-
-		std::vector<Mesh> m_MeshesWorld;
-
-		std::unique_ptr<Texture> m_upDiffuseTxt;
-		std::unique_ptr<Texture> m_upNormalTxt;
-		std::unique_ptr<Texture> m_upGlossTxt;
-		std::unique_ptr<Texture> m_upSpecularTxt;
+		std::vector<Mesh> m_vMeshes;
 	};
 }

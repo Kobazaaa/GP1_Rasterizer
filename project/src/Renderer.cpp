@@ -8,7 +8,6 @@
 #include "Texture.h"
 #include "Utils.h"
 
-//todo remove
 #include <execution>
 
 using namespace dae;
@@ -30,73 +29,17 @@ Renderer::Renderer(SDL_Window* pWindow) :
 	// Initialize Camera
 	m_Camera.Initialize(45.f, { 0.f, 5.f, -64.f }, m_AspectRatio);
 
-	m_MeshesWorld.resize(1);
-	//Utils::ParseOBJ("resources/tuktuk2.obj", m_MeshesWorld[0].vertices, m_MeshesWorld[0].indices);
-	Utils::ParseOBJ("resources/vehicle.obj", m_MeshesWorld[0].vertices, m_MeshesWorld[0].indices, m_MeshesWorld[0].vertexCounter);
-	m_MeshesWorld[0].primitiveTopology = PrimitiveTopology::TriangleList;
-	//m_MeshesWorld[0].worldMatrix = Matrix::CreateTranslation({0.f, 0.f, 50.f});
+	// Initialize Meshes
+	m_vMeshes.resize(2);
 
-	//// Initialize Mesh with TriangleStrip
-	//m_MeshesWorld.push_back(
-	//	Mesh
-	//	{
-	//		// Vertices
-	//		{
-	//			Vertex{ { -3 - 4,  3, -4}, colors::White, { 0.0f, 0.0f } },
-	//			Vertex{ {  0 - 4,  3, -4}, colors::White, { 0.5f, 0.0f } },
-	//			Vertex{ {  3 - 4,  3, -4}, colors::White, { 1.0f, 0.0f } },
-	//			Vertex{ { -3 - 4,  0, -4}, colors::White, { 0.0f, 0.5f } },
-	//			Vertex{ {  0 - 4,  0, -4}, colors::White, { 0.5f, 0.5f } },
-	//			Vertex{ {  3 - 4,  0, -4}, colors::White, { 1.0f, 0.5f } },
-	//			Vertex{ { -3 - 4, -3, -4}, colors::White, { 0.0f, 1.0f } },
-	//			Vertex{ {  0 - 4, -3, -4}, colors::White, { 0.5f, 1.0f } },
-	//			Vertex{ {  3 - 4, -3, -4}, colors::White, { 1.0f, 1.0f } }
-	//		},
-	//		// Indices
-	//		{
-	//			3, 0, 4, 1, 5, 2,
-	//			2, 6,
-	//			6, 3, 7, 4, 8, 5
-	//		},
-	//		// Topology
-	//		PrimitiveTopology::TriangleStrip
-	//	}
-	//);
-	//
-	//// Initialize Mesh with TriangleList
-	//m_MeshesWorld.push_back(
-	//	Mesh
-	//	{
-	//		// Vertices
-	//		{
-	//			Vertex{ { -3 + 4,  3, -2}, colors::Green, { 0.0f, 0.0f } },
-	//			Vertex{ {  0 + 4,  3, -2}, colors::Blue, { 0.5f, 0.0f } },
-	//			Vertex{ {  3 + 4,  3, -2}, colors::White, { 1.0f, 0.0f } },
-	//			Vertex{ { -3 + 4,  0, -2}, colors::Red, { 0.0f, 0.5f } },
-	//			Vertex{ {  0 + 4,  0, -2}, colors::White, { 0.5f, 0.5f } },
-	//			Vertex{ {  3 + 4,  0, -2}, colors::White, { 1.0f, 0.5f } },
-	//			Vertex{ { -3 + 4, -3, -2}, colors::White, { 0.0f, 1.0f } },
-	//			Vertex{ {  0 + 4, -3, -2}, colors::White, { 0.5f, 1.0f } },
-	//			Vertex{ {  3 + 4, -3, -2}, colors::White, { 1.0f, 1.0f } }
-	//		},
-	//		// Indices
-	//		{
-	//			3, 0, 1,	1, 4, 3,	4, 1, 2, 
-	//			2, 5, 4,	6, 3, 4,	4, 7, 6, 
-	//			7, 4, 5,	5, 8, 7
-	//		},
-	//		// Topology
-	//		PrimitiveTopology::TriangleList
-	//	}
-	//);
+	// MESH 01
+	Utils::ParseOBJ("resources/vehicle.obj", m_vMeshes[0].vertices, m_vMeshes[0].indices, m_vMeshes[0].vertexCounter);
+	m_vMeshes[0].primitiveTopology = PrimitiveTopology::TriangleList;
 
-	// Load a texture
-	//m_upDiffuseTxt.reset(Texture::LoadFromFile("resources/uv_grid_2.png"));
-	//m_upDiffuseTxt.reset(Texture::LoadFromFile("resources/tuktuk.png"));
-	m_upDiffuseTxt.reset(Texture::LoadFromFile("resources/vehicle_diffuse.png"));
-	m_upNormalTxt.reset(Texture::LoadFromFile("resources/vehicle_normal.png"));
-	m_upGlossTxt.reset(Texture::LoadFromFile("resources/vehicle_gloss.png"));
-	m_upSpecularTxt.reset(Texture::LoadFromFile("resources/vehicle_specular.png"));
+	m_vMeshes[0].LoadDiffuseTexture("resources/vehicle_diffuse.png");
+	m_vMeshes[0].LoadNormalMap("resources/vehicle_normal.png");
+	m_vMeshes[0].LoadGlossinessMap("resources/vehicle_gloss.png");
+	m_vMeshes[0].LoadSpecularMap("resources/vehicle_specular.png");
 }
 
 Renderer::~Renderer()
@@ -109,8 +52,8 @@ void Renderer::Update(Timer* pTimer)
 	m_Camera.Update(pTimer);
 
 	const float rotationSpeedRadians = 1;
-	if(m_RotateMesh) m_MeshesWorld[0].worldMatrix = Matrix::CreateRotationY(rotationSpeedRadians * pTimer->GetElapsed())
-													* m_MeshesWorld[0].worldMatrix;
+	if(m_RotateMesh) m_vMeshes[0].worldMatrix = Matrix::CreateRotationY(rotationSpeedRadians * pTimer->GetElapsed())
+													* m_vMeshes[0].worldMatrix;
 }
 
 void Renderer::Render()
@@ -128,31 +71,30 @@ void Renderer::Render()
 
 	// RENDER LOGIC
 
-
 	// predefine a triangle we can reuse
 	std::array<Vertex_Out, 3> triangleNDC{};
 	std::array<Vertex_Out, 3> triangleRasterVertices{};
 
 	// For every triangle mesh
-	for (int triangleMeshIndex{}; triangleMeshIndex < m_MeshesWorld.size(); ++triangleMeshIndex)
+	for (int triangleMeshIndex{}; triangleMeshIndex < m_vMeshes.size(); ++triangleMeshIndex)
 	{
-		Mesh& currentMesh = m_MeshesWorld[triangleMeshIndex];
+		Mesh& currentMesh = m_vMeshes[triangleMeshIndex];
 
 		int indexJump = 0;
 		int triangleCount = 0;
 		bool triangleStripMethod = false;
 
 		// Determine the triangle count and index jump depending on the PrimitiveTopology
-		if (m_MeshesWorld[triangleMeshIndex].primitiveTopology == PrimitiveTopology::TriangleList)
+		if (m_vMeshes[triangleMeshIndex].primitiveTopology == PrimitiveTopology::TriangleList)
 		{
 			indexJump = 3;
-			triangleCount = m_MeshesWorld[triangleMeshIndex].indices.size() / 3;
+			triangleCount = m_vMeshes[triangleMeshIndex].indices.size() / 3;
 			triangleStripMethod = false;
 		}
-		else if (m_MeshesWorld[triangleMeshIndex].primitiveTopology == PrimitiveTopology::TriangleStrip)
+		else if (m_vMeshes[triangleMeshIndex].primitiveTopology == PrimitiveTopology::TriangleStrip)
 		{
 			indexJump = 1;
-			triangleCount = m_MeshesWorld[triangleMeshIndex].indices.size() - 2;
+			triangleCount = m_vMeshes[triangleMeshIndex].indices.size() - 2;
 			triangleStripMethod = true;
 		}
 
@@ -280,21 +222,14 @@ void Renderer::Render()
 					interpolatedAttributes.position.z = zBufferValue;
 					interpolatedAttributes.position.w = wInterpolated;
 
-					PixelShading(interpolatedAttributes, finalColor);
+					finalColor = PixelShading(interpolatedAttributes, currentMesh);
 
 					if (m_DepthBufferVisualization)
 					{
-						float remappedZ = Remap01(zBufferValue, 0.995f, 1.f);
-						//ColorRGB remappedZ = {
-						//	(interpolatedAttributes.normal.x + 1) / 2.f,
-						//	(interpolatedAttributes.normal.y + 1) / 2.f,
-						//	(interpolatedAttributes.normal.z + 1) / 2.f
-						//};
-
-
-						finalColor = { remappedZ, remappedZ, remappedZ };
+						float remappedZ = Remap01(m_pDepthBufferPixels[m_Width * py + px], 0.995f, 1);
+						finalColor = { remappedZ , remappedZ , remappedZ };
 					}
-					
+
 					// Make sure our colors are within the correct 0-1 range (while keeping relative differences)
 					finalColor.MaxToOne();
 
@@ -349,28 +284,6 @@ void dae::Renderer::ProjectMeshToNDC(Mesh& mesh) const
 
 
 		});
-		
-	//for (int index{}; index < mesh.indices.size() - 3; index += 3)
-	//{
-	//	float middleDepth = mesh.vertices_out[mesh.indices[index]].position.z
-	//		+ mesh.vertices_out[mesh.indices[index + 1]].position.z
-	//		+ mesh.vertices_out[mesh.indices[index + 2]].position.z;
-
-	//	float middleDepth2 = mesh.vertices_out[mesh.indices[index + 3]].position.z
-	//		+ mesh.vertices_out[mesh.indices[index + 4]].position.z
-	//		+ mesh.vertices_out[mesh.indices[index + 5]].position.z;
-
-	//	if (middleDepth > middleDepth2)
-	//	{
-	//		std::swap(mesh.vertices_out[mesh.indices[index + 0]], mesh.vertices_out[mesh.indices[index + 3]]);
-	//		std::swap(mesh.vertices_out[mesh.indices[index + 1]], mesh.vertices_out[mesh.indices[index + 4]]);
-	//		std::swap(mesh.vertices_out[mesh.indices[index + 2]], mesh.vertices_out[mesh.indices[index + 5]]);
-
-	//		std::swap(mesh.indices[index + 0], mesh.indices[index + 3]);
-	//		std::swap(mesh.indices[index + 1], mesh.indices[index + 4]);
-	//		std::swap(mesh.indices[index + 2], mesh.indices[index + 5]);
-	//	}
-	//}
 }
 void dae::Renderer::RasterizeVertex(Vertex_Out& vertex) const
 {
@@ -438,7 +351,7 @@ void dae::Renderer::InterpolateAllAttributes(const std::array<Vertex_Out, 3>& tr
 	output.viewDirection.Normalize();
 }
 
-void dae::Renderer::PixelShading(const Vertex_Out& v, ColorRGB& color)
+ColorRGB dae::Renderer::PixelShading(const Vertex_Out& v, Mesh& m)
 {
 	// Ambient Color
 	const ColorRGB ambient = { 0.03f, 0.03f, 0.03f };
@@ -449,37 +362,38 @@ void dae::Renderer::PixelShading(const Vertex_Out& v, ColorRGB& color)
 
 	// Sample the normal
 	Vector3 sampledNormal{};
-	if (m_UseNormalMap)		sampledNormal = SampleFromNormalMap(v.normal, v.tangent, v.uv, m_upNormalTxt);
+	if (m_UseNormalMap)		sampledNormal = m.SampleNormalMap(v.normal, v.tangent, v.uv);
 	else					sampledNormal = v.normal;
 
 	// Calculate the observed area
 	const float observedArea = Vector3::Dot(sampledNormal, directionToLight);
-	if (observedArea <= 0.f and
-		(m_CurrentShadingMode == ShadingMode::ObservedArea or
-		 m_CurrentShadingMode == ShadingMode::Combined)) return;
+	// Skipping if observedArea < 0 happens when we check for the Current Shading Mode, as we really only want to skip (return black) if
+	// We are actualy in a mode that uses observedArea (ObservedArea and Combined)
 
 	// Calculate the lambert diffuse color
-	const ColorRGB cd = m_upDiffuseTxt->Sample(v.uv);
+	const ColorRGB cd = m.SampleDiffuse(v.uv);
 	const float kd = 7.f;
 	const ColorRGB lambertDiffuse = (cd * kd) * ONE_DIV_PI;
 
 	// Calculate the specularity
 	const float shininess = 25.f;
-	const ColorRGB specular = SamplePhong(directionToLight, v.viewDirection, sampledNormal, v.uv, shininess, m_upGlossTxt, m_upSpecularTxt);
+	const ColorRGB specular = m.SamplePhong(directionToLight, v.viewDirection, sampledNormal, v.uv, shininess);
 
 	switch (m_CurrentShadingMode)
 	{
 	case dae::Renderer::ShadingMode::ObservedArea:
-		color = { observedArea, observedArea, observedArea };
+		if (observedArea <= 0.f) return{};
+		return ColorRGB{ observedArea, observedArea, observedArea };
 		break;
 	case dae::Renderer::ShadingMode::Diffuse:
-		color = lambertDiffuse;
+		return lambertDiffuse;
 		break;
 	case dae::Renderer::ShadingMode::Specular:
-		color = specular;
+		return specular;
 		break;
 	case dae::Renderer::ShadingMode::Combined:
-		color = (lambertDiffuse + specular + ambient) * observedArea;
+		if (observedArea <= 0.f) return{};
+		return (lambertDiffuse + specular + ambient) * observedArea;
 		break;
 	default:
 		break;

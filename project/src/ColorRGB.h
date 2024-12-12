@@ -100,16 +100,18 @@ namespace dae
 
 		const ColorRGB& operator/=(float s)
 		{
-			r /= s;
-			g /= s;
-			b /= s;
+			const float invScale{ 1.f / s };
+			r *= invScale;
+			g *= invScale;
+			b *= invScale;
 
 			return *this;
 		}
 
 		const ColorRGB& operator/(float s) const
 		{
-			return { r / s, g / s, b / s };
+			const float invScale{ 1.f / s };
+			return { r * invScale, g * invScale, b * invScale };
 		}
 #pragma endregion
 	};
