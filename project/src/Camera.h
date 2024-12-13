@@ -34,7 +34,7 @@ namespace dae
 		float totalYaw{};
 
 		const float MOVEMENT_SPEED = 20.f;
-		const float ROTATION_SPEED = 10.f;
+		const float ROTATION_SPEED = 30.f;
 
 		Matrix viewMatrix{};
 		Matrix invViewMatrix{};
@@ -114,14 +114,14 @@ namespace dae
 			const bool RMB = mouseState & SDL_BUTTON(SDL_BUTTON_RIGHT);
 			if (!LMB and RMB)
 			{
-				totalPitch  -= mouseY * ROTATION_SPEED * deltaTime * TO_RADIANS;
+				totalPitch  -= SignOf(mouseY) * ROTATION_SPEED * deltaTime * TO_RADIANS;
 				totalPitch   = std::clamp(totalPitch, -pitchLockAngle, pitchLockAngle); // locks the up/down camera rotation so you don't overshoot
-				totalYaw	+= mouseX * ROTATION_SPEED * deltaTime * TO_RADIANS;
+				totalYaw	+= SignOf(mouseX) * ROTATION_SPEED * deltaTime * TO_RADIANS;
 			}
 			else if (LMB and !RMB)
 			{
 				origin		-= SignOf(mouseY) * forward * displacement;
-				totalYaw	+= mouseX * ROTATION_SPEED * deltaTime * TO_RADIANS;
+				totalYaw	+= SignOf(mouseX) * ROTATION_SPEED * deltaTime * TO_RADIANS;
 			}
 			else if (LMB and RMB)
 			{

@@ -9,6 +9,8 @@
 #include "Utils.h"
 
 #include <execution>
+#include <future>
+#include <thread>
 
 using namespace dae;
 
@@ -27,10 +29,10 @@ Renderer::Renderer(SDL_Window* pWindow) :
 	m_pDepthBufferPixels = new float[m_Width * m_Height];
 
 	// Initialize Camera
-	m_Camera.Initialize(45.f, { 0.f, 5.f, -64.f }, m_AspectRatio);
+	m_Camera.Initialize(45.f, { 0.f, 5.f, -64.f }, m_AspectRatio, 0.1f, 100.f);
 
 	// Initialize Meshes
-	m_vMeshes.resize(2);
+	m_vMeshes.resize(1);
 
 	// MESH 01
 	Utils::ParseOBJ("resources/vehicle.obj", m_vMeshes[0].vertices, m_vMeshes[0].indices, m_vMeshes[0].vertexCounter);
@@ -60,22 +62,14 @@ void Renderer::Render()
 {
 	// @START
 	SDL_FillRect(m_pBackBuffer, NULL, 0x646464);
-	for (int index{}; index < m_Width * m_Height; ++index)
-	{
-		// Clear the DEPTH BUFFER
-		m_pDepthBufferPixels[index] = 1;
-	}
-	
+	std::fill(&m_pDepthBufferPixels[0], &m_pDepthBufferPixels[m_Width * m_Height], 1);
+
 	// Lock BackBuffer
 	SDL_LockSurface(m_pBackBuffer);
-
-	// RENDER LOGIC
 
 	// predefine a triangle we can reuse
 	std::array<Vertex_Out, 3> triangleNDC{};
 	std::array<Vertex_Out, 3> triangleRasterVertices{};
-
-	// For every triangle mesh
 	for (int triangleMeshIndex{}; triangleMeshIndex < m_vMeshes.size(); ++triangleMeshIndex)
 	{
 		Mesh& currentMesh = m_vMeshes[triangleMeshIndex];
@@ -111,7 +105,7 @@ void Renderer::Render()
 			if (indexPos0 == indexPos1 or indexPos0 == indexPos2 or indexPos1 == indexPos2) continue;
 			// If the triangle strip method is in use, swap the indices of odd indexed triangles
 			if (triangleStripMethod and (triangleIndex & 1)) std::swap(indexPos1, indexPos2);
-			
+
 			// Define triangle in NDC
 			triangleNDC[0] = currentMesh.vertices_out[indexPos0];
 			triangleNDC[1] = currentMesh.vertices_out[indexPos1];
@@ -133,47 +127,47 @@ void Renderer::Render()
 			triangleRasterVertices[0] = currentMesh.vertices_out[indexPos0];
 			triangleRasterVertices[1] = currentMesh.vertices_out[indexPos1];
 			triangleRasterVertices[2] = currentMesh.vertices_out[indexPos2];
+			const Vector2& v0 = triangleRasterVertices[0].position.GetXY();
+			const Vector2& v1 = triangleRasterVertices[1].position.GetXY();
+			const Vector2& v2 = triangleRasterVertices[2].position.GetXY();
 
-			if(m_DrawWireFrames)
+			if (m_DrawWireFrames)
 			{
 				ColorRGB wireFrameColor = colors::White * Remap01(minDepth, 0.998f, 1.f);
 
-				DrawLine(triangleRasterVertices[0].position.x, triangleRasterVertices[0].position.y,
-						 triangleRasterVertices[1].position.x, triangleRasterVertices[1].position.y,
-						 wireFrameColor);
-
-				DrawLine(triangleRasterVertices[1].position.x, triangleRasterVertices[1].position.y,
-						 triangleRasterVertices[2].position.x, triangleRasterVertices[2].position.y,
-						 wireFrameColor);
-
-				DrawLine(triangleRasterVertices[2].position.x, triangleRasterVertices[2].position.y,
-						 triangleRasterVertices[0].position.x, triangleRasterVertices[0].position.y,
-						 wireFrameColor);
+				DrawLine(v0.x, v0.y, v1.x, v1.y, wireFrameColor);
+				DrawLine(v1.x, v1.y, v2.x, v2.y, wireFrameColor);
+				DrawLine(v2.x, v2.y, v0.x, v0.y, wireFrameColor);
 
 				continue;
 			}
 
 			// Define the triangle's bounding box
-			Vector2 min = {  FLT_MAX,  FLT_MAX };
+			Vector2 min = { FLT_MAX,  FLT_MAX };
 			Vector2 max = { -FLT_MAX, -FLT_MAX };
 			{
 				// Minimums
-				min = Vector2::Min(min, triangleRasterVertices[0].position.GetXY());
-				min = Vector2::Min(min, triangleRasterVertices[1].position.GetXY());
-				min = Vector2::Min(min, triangleRasterVertices[2].position.GetXY());
+				min = Vector2::Min(min, v0);
+				min = Vector2::Min(min, v1);
+				min = Vector2::Min(min, v2);
 				// Clamp between screen min and max, but also make sure that, due to floating point -> int rounding happens correct
-				min.x = std::clamp(std::floor(min.x), 0.f, m_Width  - 1.f);
+				min.x = std::clamp(std::floor(min.x), 0.f, m_Width - 1.f);
 				min.y = std::clamp(std::floor(min.y), 0.f, m_Height - 1.f);
-				
+
 				// Maximums
-				max = Vector2::Max(max, triangleRasterVertices[0].position.GetXY());
-				max = Vector2::Max(max, triangleRasterVertices[1].position.GetXY());
-				max = Vector2::Max(max, triangleRasterVertices[2].position.GetXY());
+				max = Vector2::Max(max, v0);
+				max = Vector2::Max(max, v1);
+				max = Vector2::Max(max, v2);
 				// Clamp between screen min and max, but also make sure that, due to floating point -> int rounding happens correct
-				max.x = std::clamp(std::ceil(max.x), 0.f, m_Width  - 1.f);
+				max.x = std::clamp(std::ceil(max.x), 0.f, m_Width - 1.f);
 				max.y = std::clamp(std::ceil(max.y), 0.f, m_Height - 1.f);
 			}
 
+			// Pre-calculate the inverse area of the triangle so this doesn't need to happen for
+			// every pixels once we calculate the barycentric coordinates (as the triangle area won't change)
+			float area = Vector2::Cross(v1 - v0, v2 - v0);
+			area = abs(area);
+			float invArea = 1.f / area;
 
 			// For every pixel (within the bounding box)
 			for (int py{ int(min.y) }; py < int(max.y); ++py)
@@ -191,16 +185,13 @@ void Renderer::Render()
 
 					// Declare wInterpolated and zBufferValue of this pixel
 					float wInterpolated{ FLT_MAX };
-					float zBufferValue { FLT_MAX };
+					float zBufferValue{ FLT_MAX };
 
 					// Calculate the barycentric coordinates of that pixel in relationship to the triangle,
 					// these barycentric coordinates CAN be invalid (point outside triangle)
 					Vector2 pixelCoord = Vector2(px + 0.5f, py + 0.5f);
 					Vector3 barycentricCoords = CalculateBarycentricCoordinates(
-						triangleRasterVertices[0].position.GetXY(),
-						triangleRasterVertices[1].position.GetXY(),
-						triangleRasterVertices[2].position.GetXY(),
-						pixelCoord);
+						v0, v1, v2, pixelCoord, invArea);
 
 					// Check if our barycentric coordinates are valid, if not, skip to the next pixel
 					if (!AreBarycentricValid(barycentricCoords, true, false)) continue;
@@ -226,7 +217,7 @@ void Renderer::Render()
 
 					if (m_DepthBufferVisualization)
 					{
-						float remappedZ = Remap01(m_pDepthBufferPixels[m_Width * py + px], 0.995f, 1);
+						float remappedZ = Remap01(m_pDepthBufferPixels[m_Width * py + px], 0.998f, 1);
 						finalColor = { remappedZ , remappedZ , remappedZ };
 					}
 
@@ -244,8 +235,8 @@ void Renderer::Render()
 		}
 	}
 
-	//@END
-	//Update SDL Surface
+
+	// @END
 	SDL_UnlockSurface(m_pBackBuffer);
 	SDL_BlitSurface(m_pBackBuffer, 0, m_pFrontBuffer, 0);
 	SDL_UpdateWindowSurface(m_pWindow);
@@ -396,6 +387,7 @@ ColorRGB dae::Renderer::PixelShading(const Vertex_Out& v, Mesh& m)
 		return (lambertDiffuse + specular + ambient) * observedArea;
 		break;
 	default:
+		return (lambertDiffuse + specular + ambient) * observedArea;
 		break;
 	}
 }
@@ -414,8 +406,8 @@ void dae::Renderer::DrawLine(int x0, int y0, int x1, int y1, const ColorRGB& col
 
 	while (true)
 	{
-		if (y0 < m_Height and y0 > 0
-			and x0 < m_Width and x0 > 0)
+		if (y0 < m_Height and y0 >= 0
+			and x0 < m_Width and x0 >= 0)
 		{
 			m_pBackBufferPixels[m_Width * y0 + x0] = SDL_MapRGB(m_pBackBuffer->format,
 				static_cast<uint8_t>(color.r * 255),
@@ -428,7 +420,6 @@ void dae::Renderer::DrawLine(int x0, int y0, int x1, int y1, const ColorRGB& col
 		if (e2 >= dy) { err += dy; x0 += sx; }
 		if (e2 <= dx) { err += dx; y0 += sy; }
 	}
-
 }
 
 bool Renderer::SaveBufferToImage() const

@@ -30,11 +30,11 @@ namespace dae
 	}
 
 	// Both pixel and the triangle vertices must be in SCREEN SPACE
-	inline Vector3 CalculateBarycentricCoordinates(const Vector2& v0, const Vector2& v1, const Vector2& v2, const Vector2& p)
+	inline Vector3 CalculateBarycentricCoordinates(const Vector2& v0, const Vector2& v1, const Vector2& v2, const Vector2& p, float invArea)
 	{
-		float area = Vector2::Cross(v1 - v0, v2 - v0);
-		area = abs(area);
-		float invArea = 1.f / area;
+		//float area = Vector2::Cross(v1 - v0, v2 - v0);
+		//area = abs(area);
+		//float invArea = 1.f / area;
 
 		// Calculate the barycentric coordinates
 		// the if-checks and early return statements are to prevent further computing once one of the weights is outide of the -1 - 1 range
@@ -113,7 +113,11 @@ namespace dae
 
 		return IsNDCTriangleInFrustum(temp);
 	}
-
+	inline bool TileOverlap(const Vector2& triangleMin, const Vector2& triangleMax, const Vector2& tileMin, const Vector2& tileMax)
+	{
+		return !(tileMax.x < triangleMin.x || tileMin.x > triangleMax.x ||
+			tileMax.y < triangleMin.y || tileMin.y > triangleMax.y);
+	}
 	namespace Utils
 	{
 		//Just parses vertices and indices

@@ -40,10 +40,15 @@ namespace dae
 
 		inline ColorRGB SampleDiffuse(const Vector2& interpUV)
 		{
+			if (m_upDiffuseTxt == nullptr) return {};
+
 			return m_upDiffuseTxt->Sample(interpUV);
 		}
 		inline ColorRGB SamplePhong(const Vector3& dirToLight, const Vector3& viewDir, const Vector3& interpNormal, const Vector2& interpUV, float shininess)
 		{
+			if (m_upSpecularTxt == nullptr) return {};
+			if (m_upGlossTxt == nullptr) return {};
+
 			float ks = m_upSpecularTxt->Sample(interpUV).r;
 			float exp = m_upGlossTxt->Sample(interpUV).r * shininess;
 
@@ -53,6 +58,8 @@ namespace dae
 		}
 		inline Vector3 SampleNormalMap(const Vector3& interpNormal, const Vector3& interpTangent, const Vector2& interpUV)
 		{
+			if (m_upNormalTxt == nullptr) return {};
+
 			// Calculate the tangent space matrix
 			Vector3 binormal = Vector3::Cross(interpNormal, interpTangent);
 			Matrix tangentSpaceAxis = Matrix(

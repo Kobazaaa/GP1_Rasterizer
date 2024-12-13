@@ -20,6 +20,14 @@ void ShutDown(SDL_Window* pWindow)
 	SDL_DestroyWindow(pWindow);
 	SDL_Quit();
 }
+void SetConsoleColor(int textColorCode)
+{
+	std::cout << "\033[" << textColorCode << "m";
+}
+void ResetConsoleColor()
+{
+	std::cout << "\033[0m";
+}
 
 int main(int argc, char* args[])
 {
@@ -52,7 +60,17 @@ int main(int argc, char* args[])
 	// Start Benchmark
 	// TODO pTimer->StartBenchmark();
 
-	//SDL_SetRelativeMouseMode(SDL_TRUE);
+	SetConsoleColor(33);
+	std::cout << "===== Shortcuts =====\n";
+	std::cout << "F1 - Toggle FPS in Console [OFF/ON]\n";
+	std::cout << "F4 - Toggle Depth Buffer Visualization [OFF/ON]\n";
+	std::cout << "F5 - Toggle Rotation [ON/OFF]\n";
+	std::cout << "F6 - Toggle Normal Map [ON/OFF]\n";
+	std::cout << "F7 - Cycle Shading Mode [Combined - Observed Area - Diffuse - Specular]\n";
+	std::cout << "F8 - Toggle Wireframes [OFF/ON]\n\n";
+	ResetConsoleColor();
+
+	bool displayFPS = false;
 	float printTimer = 0.f;
 	bool isLooping = true;
 	bool takeScreenshot = false;
@@ -70,8 +88,8 @@ int main(int argc, char* args[])
 			case SDL_KEYUP:
 				if (e.key.keysym.scancode == SDL_SCANCODE_X)
 					takeScreenshot = true;
-				if (e.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
-					SDL_SetRelativeMouseMode(SDL_FALSE);
+				if (e.key.keysym.scancode == SDL_SCANCODE_F1)
+					displayFPS = !displayFPS;
 				if (e.key.keysym.scancode == SDL_SCANCODE_F4)
 					pRenderer->ToggleDepthBufferVisualization();
 				if (e.key.keysym.scancode == SDL_SCANCODE_F5)
@@ -83,10 +101,6 @@ int main(int argc, char* args[])
 				if (e.key.keysym.scancode == SDL_SCANCODE_F8)
 					pRenderer->ToggleWireFrames();
 				break;
-			case SDL_MOUSEBUTTONDOWN:
-				SDL_SetRelativeMouseMode(SDL_TRUE);
-				break;
-
 			}
 		}
 
@@ -98,11 +112,14 @@ int main(int argc, char* args[])
 
 		//--------- Timer ---------
 		pTimer->Update();
-		printTimer += pTimer->GetElapsed();
-		if (printTimer >= 1.f)
+		if(displayFPS)
 		{
-			printTimer = 0.f;
-			std::cout << "dFPS: " << pTimer->GetdFPS() << std::endl;
+			printTimer += pTimer->GetElapsed();
+			if (printTimer >= 1.f)
+			{
+				printTimer = 0.f;
+				std::cout << "dFPS: " << pTimer->GetdFPS() << std::endl;
+			}
 		}
 
 		//Save screenshot after full render
